@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+src/precificador_imobiliario.egg-info/PKG-INFO
+src/precificador_imobiliario.egg-info/SOURCES.txt
+src/precificador_imobiliario.egg-info/dependency_links.txt
+src/precificador_imobiliario.egg-info/requires.txt
+src/precificador_imobiliario.egg-info/top_level.txt

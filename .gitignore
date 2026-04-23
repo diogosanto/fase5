@@ -1,0 +1,30 @@
+# Ambiente virtual
+.venv/
+venv/
+.env/
+env/
+.env.bak/
+
+# Dados brutos e intermediários
+data/raw/
+data/interim/
+data/processed/
+
+# Dados de ambientes
+data/dev/
+data/test/
+data/prod/
+
+# Artefatos grandes
+mlruns/
+models/dev/
+models/test/
+models/prod/
+
+# Arquivos temporários
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
