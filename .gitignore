@@ -9,6 +9,7 @@ env/
 data/raw/
 data/interim/
 data/processed/
+data/normalized/
 
 # Dados de ambientes
 data/dev/

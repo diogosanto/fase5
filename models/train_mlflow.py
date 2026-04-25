@@ -8,73 +8,84 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 import os
+import datetime
+import shutil
 
 
 INPUT = "data/processed/itbi_features_minimal.csv"
-OUTPUT = "models/dev/model.pkl"
+
+
+def generate_version():
+    return datetime.datetime.now().strftime("%Y.%m.%d.%H%M")
 
 
 def train_mlflow():
 
-    df = pd.read_csv(INPUT, sep=";")
+    # gerar versão automática
+    version = generate_version()
 
-    # Remover linhas com NaN nas features essenciais
-    df = df.dropna(subset=[
-        "bairro",
-        "area_do_terreno_m2",
-        "ano_mes",
-        "media_valor_cep"
-    ])
-    # Remover bairros com apenas 1 ocorrência (não podem ser estratificados)
-    counts = df["bairro"].value_counts()
-    bairros_validos = counts[counts >= 2].index
-    df = df[df["bairro"].isin(bairros_validos)]
-
-
-    X = df[[
-        "bairro",
-        "area_do_terreno_m2",
-        "valor_m2",
-        "ano_mes",
-        "media_valor_cep"
-    ]]
-
-    y = df["valor_venal_de_referencia"]
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=X["bairro"]
-    )
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("cat", OneHotEncoder(handle_unknown="ignore"), ["bairro"]),
-            ("num", "passthrough", [
-                "area_do_terreno_m2",
-                "valor_m2",
-                "ano_mes",
-                "media_valor_cep"
-            ])
-        ]
-    )
-
-    model = RandomForestRegressor(
-        n_estimators=200,
-        random_state=42,
-        n_jobs=-1
-    )
-
-    pipeline = Pipeline([
-        ("preprocess", preprocessor),
-        ("model", model)
-    ])
+    # definir caminho de saída AGORA (depois de gerar a versão)
+    OUTPUT = f"models/dev/model_{version}"
 
     mlflow.set_experiment("itbi-terrenos")
 
     with mlflow.start_run():
+
+        mlflow.log_param("model_version", version)
+
+        df = pd.read_csv(INPUT, sep=";")
+
+        df = df.dropna(subset=[
+            "bairro",
+            "area_do_terreno_m2",
+            "ano_mes",
+            "media_valor_cep"
+        ])
+
+        counts = df["bairro"].value_counts()
+        bairros_validos = counts[counts >= 2].index
+        df = df[df["bairro"].isin(bairros_validos)]
+
+        X = df[[
+            "bairro",
+            "area_do_terreno_m2",
+            "valor_m2",
+            "ano_mes",
+            "media_valor_cep"
+        ]]
+
+        y = df["valor_venal_de_referencia"]
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+            stratify=X["bairro"]
+        )
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ("cat", OneHotEncoder(handle_unknown="ignore"), ["bairro"]),
+                ("num", "passthrough", [
+                    "area_do_terreno_m2",
+                    "valor_m2",
+                    "ano_mes",
+                    "media_valor_cep"
+                ])
+            ]
+        )
+
+        model = RandomForestRegressor(
+            n_estimators=200,
+            random_state=42,
+            n_jobs=-1
+        )
+
+        pipeline = Pipeline([
+            ("preprocess", preprocessor),
+            ("model", model)
+        ])
 
         pipeline.fit(X_train, y_train)
 
@@ -89,14 +100,15 @@ def train_mlflow():
         mlflow.log_param("n_estimators", 200)
         mlflow.log_param("features", X.columns.tolist())
 
+        # log no MLflow
         mlflow.sklearn.log_model(pipeline, "model")
 
+        # salvar localmente com versionamento
         os.makedirs("models/dev", exist_ok=True)
-        import shutil
 
-        # Remover modelo antigo, se existir
         if os.path.exists(OUTPUT):
             shutil.rmtree(OUTPUT)
+
         mlflow.sklearn.save_model(pipeline, OUTPUT)
 
         print(f"MAE: {mae:,.2f}")
