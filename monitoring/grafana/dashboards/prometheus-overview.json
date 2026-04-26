@@ -1,0 +1,35 @@
+{
+  "id": null,
+  "title": "Prometheus Overview",
+  "uid": "prom-overview",
+  "schemaVersion": 27,
+  "version": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "API Up",
+      "gridPos": {"x":0,"y":0,"w":6,"h":4},
+      "targets": [{"expr":"up{job=\"api_precificador\"}","refId":"A"}]
+    },
+    {
+      "type": "graph",
+      "title": "Requests per second",
+      "gridPos": {"x":6,"y":0,"w":12,"h":8},
+      "targets": [{"expr":"sum(rate(http_requests_total{job=\"api_precificador\"}[1m])) by (instance)","refId":"A"}]
+    },
+    {
+      "type": "graph",
+      "title": "95th percentile latency (s)",
+      "gridPos": {"x":0,"y":4,"w":9,"h":6},
+      "targets": [{"expr":"histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"api_precificador\"}[5m])) by (le))","refId":"A"}]
+    },
+    {
+      "type": "graph",
+      "title": "5xx error rate (req/s)",
+      "gridPos": {"x":9,"y":4,"w":9,"h":6},
+      "targets": [{"expr":"sum(rate(http_requests_total{job=\"api_precificador\",status=~\"5..\"}[5m]))","refId":"A"}]
+    }
+  ],
+  "time": {"from":"now-1h","to":"now"},
+  "refresh": "10s"
+}
