@@ -1,18 +1,56 @@
 import mlflow.pyfunc
 import pandas as pd
 import os
+import re
 
 
-def validate(env="test"):
-    model_path = f"models/{env}/model.pkl"  # É uma pasta, não um arquivo
+def get_model_version(path):
+    """
+    Extrai a versão do modelo a partir do nome da pasta.
+    Exemplo: model_2026.04.25.1430
+    """
+    match = re.search(r"model_(\d+\.\d+\.\d+\.\d+)", path)
+    return match.group(1) if match else "unknown"
 
-    if not os.path.exists(model_path):
-        print(f"[ERRO] Modelo não encontrado em {model_path}")
+
+def validate(env="test", version=None):
+    """
+    Valida um modelo em um ambiente específico.
+    
+    env: "dev", "test" ou "prod"
+    version: string opcional no formato YYYY.MM.DD.HHMM
+             Se None → usa a única versão presente no ambiente.
+    """
+    base_path = f"models/{env}"
+
+    if not os.path.exists(base_path):
+        print(f"[ERRO] Ambiente '{env}' não existe em {base_path}")
         return
 
-    print(f"[INFO] Carregando modelo de {model_path}...")
-    model = mlflow.pyfunc.load_model(model_path)
+    # Se o usuário especificou uma versão, usa ela
+    if version:
+        model_folder = f"model_{version}"
+        full_model_path = os.path.join(base_path, model_folder)
 
+        if not os.path.exists(full_model_path):
+            print(f"[ERRO] Versão {version} não encontrada em {base_path}")
+            return
+    else:
+        # Descobrir automaticamente a versão ativa do ambiente
+        folders = [f for f in os.listdir(base_path) if f.startswith("model_")]
+        if not folders:
+            print(f"[ERRO] Nenhum modelo encontrado em {base_path}")
+            return
+
+        # Assumir que existe apenas 1 modelo por ambiente
+        model_folder = folders[0]
+        full_model_path = os.path.join(base_path, model_folder)
+        version = get_model_version(model_folder)
+
+    print(f"[INFO] Carregando modelo versão {version} de {full_model_path}...")
+    model = mlflow.pyfunc.load_model(full_model_path)
+
+    # Amostra de teste
     sample = pd.DataFrame([{
         "bairro": "CENTRO",
         "area_do_terreno_m2": 300,
@@ -24,7 +62,7 @@ def validate(env="test"):
     print("[INFO] Rodando previsão de teste...")
     pred = model.predict(sample)[0]
 
-    print(f"[OK] Previsão gerada: {pred:,.2f}")
+    print(f"[OK] Previsão gerada (versão {version}): {pred:,.2f}")
 
 
 if __name__ == "__main__":

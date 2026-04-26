@@ -3,6 +3,8 @@ import mlflow.pyfunc
 import pandas as pd
 import os
 import re
+from prometheus_fastapi_instrumentator import Instrumentator
+
 
 # -----------------------------
 # Versão da API (manual)
@@ -51,6 +53,8 @@ app = FastAPI(
     version=API_VERSION
 )
 
+# 🔥 Instrumentação Prometheus
+Instrumentator().instrument(app).expose(app)
 
 # -----------------------------
 # Endpoints
