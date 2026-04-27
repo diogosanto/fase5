@@ -66,4 +66,12 @@ def validate(env="test", version=None):
 
 
 if __name__ == "__main__":
-    validate("test")
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Validação de modelos")
+    parser.add_argument("--env", type=str, default="dev", help="Ambiente: dev, test ou prod")
+    parser.add_argument("--version", type=str, default=None, help="Versão específica do modelo (YYYY.MM.DD.HHMM)")
+
+    args = parser.parse_args()
+
+    validate(env=args.env, version=args.version)

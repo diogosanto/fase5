@@ -28,4 +28,5 @@ __pycache__/
 *.pyo
 *.pyd
 
-
+# Apenas metadados para python
+*.egg-info/

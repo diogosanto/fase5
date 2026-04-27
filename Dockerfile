@@ -4,7 +4,8 @@ WORKDIR /app
 
 # Copia apenas arquivos essenciais primeiro (melhor cache)
 COPY pyproject.toml ./
-COPY . .
+COPY api ./api
+COPY src ./src
 
 # Instala o projeto e dependências definidas no pyproject.toml
 RUN pip install --no-cache-dir .
