@@ -3,7 +3,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import sys
-sys.stdout.reconfigure(encoding="utf-8")
+sys.stdout.reconfigure(encoding="utf-8") 
 
 BASE_URL = "https://prefeitura.sp.gov.br/fazenda/w/acesso_a_informacao/31501"
 HEADERS = {"User-Agent": "Mozilla/5.0"}
