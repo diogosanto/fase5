@@ -1,11 +1,9 @@
 import logging
-import os
 from dataclasses import asdict, dataclass
 
 from dotenv import load_dotenv
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 
+from src.agent.llm import get_llm
 from src.rag.chunking import split_documents
 from src.rag.document_loader import load_markdown_documents
 from src.rag.retriever import retrieve_documents
@@ -37,14 +35,6 @@ class RagResult:
             "sources": self.sources,
             "chunks": [asdict(chunk) for chunk in self.chunks],
         }
-
-
-def _get_rag_llm() -> ChatGoogleGenerativeAI:
-    model_name = os.getenv("GEMINI_RAG_MODEL", os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
-    return ChatGoogleGenerativeAI(
-        model=model_name,
-        temperature=0,
-    )
 
 
 def build_rag_index() -> int:
@@ -92,8 +82,7 @@ def rag_pipeline(query: str, k: int = 3) -> RagResult:
         f"Fonte: {chunk.source}\nTrecho:\n{chunk.content}"
         for chunk in chunks
     )
-    prompt = ChatPromptTemplate.from_template(
-        """
+    prompt = f"""
 Voce e um assistente especializado em precificacao imobiliaria.
 
 Responda em portugues do Brasil.
@@ -105,19 +94,23 @@ Contexto:
 {context}
 
 Pergunta:
-{question}
+{query}
 """
-    )
-    response = (prompt | _get_rag_llm()).invoke(
-        {
-            "context": context,
-            "question": query,
-        }
-    )
+    try:
+        response_text = get_llm().generate(prompt)
+    except Exception as exc:
+        logger.exception("Falha na geracao Gemini do RAG; usando fallback extrativo. Erro: %s", exc)
+        response_text = (
+            "Nao consegui usar o Gemini nesta chamada, mas encontrei contexto relevante nos documentos.\n\n"
+            + "\n\n".join(
+                f"Fonte: {chunk.source}\n{chunk.content}"
+                for chunk in chunks
+            )
+        )
 
     sources = list(dict.fromkeys(chunk.source for chunk in chunks))
     return RagResult(
-        answer=response.content,
+        answer=response_text,
         chunks_retrieved=len(chunks),
         sources=sources,
         chunks=chunks,

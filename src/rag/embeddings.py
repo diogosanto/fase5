@@ -1,12 +1,22 @@
-import os
-
-from dotenv import load_dotenv
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from sklearn.feature_extraction.text import HashingVectorizer
 
 
-load_dotenv()
+class LocalHashEmbeddings:
+    def __init__(self, n_features: int = 256) -> None:
+        self.vectorizer = HashingVectorizer(
+            n_features=n_features,
+            alternate_sign=False,
+            norm="l2",
+        )
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        matrix = self.vectorizer.transform(texts)
+        return matrix.toarray().tolist()
+
+    def embed_query(self, text: str) -> list[float]:
+        matrix = self.vectorizer.transform([text])
+        return matrix.toarray()[0].tolist()
 
 
-def get_embedding_model() -> GoogleGenerativeAIEmbeddings:
-    model_name = os.getenv("GEMINI_EMBEDDING_MODEL", "models/text-embedding-004")
-    return GoogleGenerativeAIEmbeddings(model=model_name)
+def get_embedding_model() -> LocalHashEmbeddings:
+    return LocalHashEmbeddings()

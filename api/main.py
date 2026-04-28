@@ -25,7 +25,7 @@ def get_model_version(path):
     return match.group(1) if match else "unknown"
 
 
-MODEL_PATH = "models/prod"
+MODEL_PATH = "models/dev"
 folders = [f for f in os.listdir(MODEL_PATH) if f.startswith("model_")]
 if not folders:
     raise RuntimeError("Nenhum modelo versionado encontrado em models/prod")
@@ -99,6 +99,17 @@ class ChatRequest(BaseModel):
 
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+async def chat(request: ChatRequest):
     logger.info("Pergunta recebida no endpoint /chat")
-    return agent_orchestrator.chat(request.message)
+    try:
+        return agent_orchestrator.chat(request.message)
+    except Exception as exc:
+        logger.exception("Falha nao tratada no endpoint /chat")
+        return {
+            "answer": "O endpoint /chat encontrou uma falha interna.",
+            "tools_used": [],
+            "response_time_seconds": 0.0,
+            "chunks_retrieved": 0,
+            "steps": [],
+            "error": str(exc),
+        }

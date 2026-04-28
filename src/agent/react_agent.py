@@ -43,7 +43,12 @@ class ReActAgent:
         chunks_retrieved = 0
 
         for _ in range(self.max_steps):
-            decision = self._decide_next_action(message=message, scratchpad=scratchpad)
+            try:
+                decision = self._decide_next_action(message=message, scratchpad=scratchpad)
+            except Exception as exc:
+                logger.exception("Falha na decisao do agente; ativando fallback heuristico.")
+                decision = self._fallback_decision(message=message, steps=steps, error=exc)
+
             action = decision.get("action", "final")
             action_input = decision.get("action_input", "")
             final_answer = decision.get("final_answer", "")
@@ -156,3 +161,37 @@ class ReActAgent:
             )
 
         return "O agente nao conseguiu concluir a resposta com seguranca."
+
+    def _fallback_decision(self, message: str, steps: list[AgentStep], error: Exception) -> dict[str, Any]:
+        lowered = message.lower()
+
+        if steps:
+            return {
+                "thought": f"fallback apos erro: {error}",
+                "action": "final",
+                "action_input": "",
+                "final_answer": self._fallback_answer(steps),
+            }
+
+        if any(keyword in lowered for keyword in ["estime", "estimar", "quanto vale", "preco para bairro", "valor_m2"]):
+            return {
+                "thought": f"fallback apos erro: {error}",
+                "action": "price_estimator",
+                "action_input": message,
+                "final_answer": "",
+            }
+
+        if any(keyword in lowered for keyword in ["compare", "comparar", "comparacao", "comparação"]):
+            return {
+                "thought": f"fallback apos erro: {error}",
+                "action": "region_comparer",
+                "action_input": message,
+                "final_answer": "",
+            }
+
+        return {
+            "thought": f"fallback apos erro: {error}",
+            "action": "rag_search",
+            "action_input": {"query": message},
+            "final_answer": "",
+        }

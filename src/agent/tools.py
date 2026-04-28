@@ -14,7 +14,10 @@ from src.rag.rag_pipeline import rag_pipeline
 
 logger = logging.getLogger("precificador.agent.tools")
 PROCESSED_DATA_PATH = Path("data/processed/itbi_features_minimal.csv")
-MODEL_ROOT = Path("models/prod")
+MODEL_CANDIDATE_DIRS = [
+    Path("models/prod"),
+    Path("models/dev"),
+]
 
 
 @dataclass
@@ -27,7 +30,6 @@ class ToolResult:
 def _extract_json_payload(raw_input: Any) -> Any:
     if isinstance(raw_input, (dict, list)):
         return raw_input
-
     if raw_input is None:
         return {}
 
@@ -45,6 +47,49 @@ def _normalize_region_name(region_name: str) -> str:
     return str(region_name).strip().upper()
 
 
+def _parse_prediction_payload_from_text(text: str) -> dict[str, Any]:
+    bairro_match = re.search(
+        r"bairro\s+([a-zA-ZÀ-ÿ\s]+?)(?:,| com| area| área| valor_m2| ano_mes| media_valor_cep|$)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    area_match = re.search(r"area(?:_do_terreno_m2)?\s+(\d+(?:[.,]\d+)?)", text, flags=re.IGNORECASE)
+    valor_match = re.search(r"valor_m2\s+(\d+(?:[.,]\d+)?)", text, flags=re.IGNORECASE)
+    ano_mes_match = re.search(r"ano_mes\s+(\d{6})", text, flags=re.IGNORECASE)
+    media_match = re.search(r"media_valor_cep\s+(\d+(?:[.,]\d+)?)", text, flags=re.IGNORECASE)
+
+    payload: dict[str, Any] = {}
+    if bairro_match:
+        payload["bairro"] = bairro_match.group(1).strip(" ,.")
+    if area_match:
+        payload["area_do_terreno_m2"] = area_match.group(1).replace(",", ".")
+    if valor_match:
+        payload["valor_m2"] = valor_match.group(1).replace(",", ".")
+    if ano_mes_match:
+        payload["ano_mes"] = ano_mes_match.group(1)
+    if media_match:
+        payload["media_valor_cep"] = media_match.group(1).replace(",", ".")
+    return payload
+
+
+def _parse_region_payload_from_text(text: str) -> dict[str, Any]:
+    compare_match = re.search(
+        r"compare\s+([a-zA-ZÀ-ÿ\s]+?)\s+e\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+usando\s+([a-zA-Z0-9_]+)|[.?!,]|$)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not compare_match:
+        return {}
+
+    payload = {
+        "region_a": compare_match.group(1).strip(),
+        "region_b": compare_match.group(2).strip(),
+    }
+    if compare_match.group(3):
+        payload["metric"] = compare_match.group(3).strip()
+    return payload
+
+
 def rag_search(action_input: Any) -> ToolResult:
     payload = _extract_json_payload(action_input)
     query = payload.get("query") if isinstance(payload, dict) else str(payload)
@@ -56,7 +101,6 @@ def rag_search(action_input: Any) -> ToolResult:
         )
 
     result = rag_pipeline(query=query, k=3)
-
     content = {
         "answer": result.answer,
         "sources": result.sources,
@@ -68,7 +112,6 @@ def rag_search(action_input: Any) -> ToolResult:
             for chunk in result.chunks
         ],
     }
-    logger.info("Tool rag_search usada com %s chunks", result.chunks_retrieved)
     return ToolResult(
         tool_name="rag_search",
         content=json.dumps(content, ensure_ascii=False),
@@ -81,14 +124,24 @@ def rag_search(action_input: Any) -> ToolResult:
 
 @lru_cache(maxsize=1)
 def _load_prediction_model():
-    model_dirs = sorted(MODEL_ROOT.glob("model_*"), reverse=True)
-    if not model_dirs:
-        raise FileNotFoundError("Nenhum modelo encontrado em models/prod")
-    return mlflow.pyfunc.load_model(str(model_dirs[0])), model_dirs[0].name
+    for model_root in MODEL_CANDIDATE_DIRS:
+        if not model_root.exists():
+            continue
+        model_dirs = sorted(model_root.glob("model_*"), reverse=True)
+        if not model_dirs:
+            continue
+
+        selected_model = model_dirs[0]
+        return mlflow.pyfunc.load_model(str(selected_model)), selected_model.name
+
+    searched_paths = ", ".join(str(path) for path in MODEL_CANDIDATE_DIRS)
+    raise FileNotFoundError(f"Nenhum modelo encontrado em: {searched_paths}")
 
 
 def price_estimator(action_input: Any) -> ToolResult:
     payload = _extract_json_payload(action_input)
+    if isinstance(payload, str):
+        payload = _parse_prediction_payload_from_text(payload)
     if not isinstance(payload, dict):
         return ToolResult(
             tool_name="price_estimator",
@@ -137,7 +190,6 @@ def price_estimator(action_input: Any) -> ToolResult:
         "unidade": "R$",
         "versao_modelo": model_version,
     }
-    logger.info("Tool price_estimator usada com modelo %s", model_version)
     return ToolResult(
         tool_name="price_estimator",
         content=json.dumps(content, ensure_ascii=False),
@@ -157,13 +209,10 @@ def _load_region_dataframe() -> pd.DataFrame:
 
 def region_comparer(action_input: Any) -> ToolResult:
     payload = _extract_json_payload(action_input)
+    if isinstance(payload, str):
+        payload = _parse_region_payload_from_text(payload)
     if not isinstance(payload, dict):
-        text = str(payload)
-        matches = re.findall(r"[A-Za-zÀ-ÿ]+", text)
-        if len(matches) >= 2:
-            payload = {"region_a": matches[0], "region_b": matches[1]}
-        else:
-            payload = {}
+        payload = {}
 
     region_a = payload.get("region_a")
     region_b = payload.get("region_b")
@@ -184,9 +233,9 @@ def region_comparer(action_input: Any) -> ToolResult:
             content=str(exc),
             metadata={"error": "dataset_not_found"},
         )
+
     region_a_normalized = _normalize_region_name(region_a)
     region_b_normalized = _normalize_region_name(region_b)
-
     if metric not in dataframe.columns:
         metric = "valor_m2"
 
@@ -232,7 +281,6 @@ def region_comparer(action_input: Any) -> ToolResult:
         "higher_region": higher_region,
         "absolute_difference": abs(difference),
     }
-    logger.info("Tool region_comparer usada para %s vs %s", region_a_normalized, region_b_normalized)
     return ToolResult(
         tool_name="region_comparer",
         content=json.dumps(content, ensure_ascii=False),
