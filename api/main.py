@@ -25,7 +25,7 @@ def get_model_version(path):
     return match.group(1) if match else "unknown"
 
 
-MODEL_PATH = "models/dev"
+MODEL_PATH = "models/prod"
 folders = [f for f in os.listdir(MODEL_PATH) if f.startswith("model_")]
 if not folders:
     raise RuntimeError("Nenhum modelo versionado encontrado em models/prod")
