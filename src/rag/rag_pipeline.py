@@ -1,9 +1,10 @@
 import logging
+import os
 from dataclasses import asdict, dataclass
 
 from dotenv import load_dotenv
 
-from src.agent.llm import get_llm
+from src.agent.llm import estimate_tokens, get_llm
 from src.rag.chunking import split_documents
 from src.rag.document_loader import load_markdown_documents
 from src.rag.retriever import retrieve_documents
@@ -54,21 +55,23 @@ def ensure_vector_store() -> None:
         build_rag_index()
 
 
-def retrieve_context(query: str, k: int = 3) -> list[RetrievedChunk]:
+def retrieve_context(query: str, k: int | None = None) -> list[RetrievedChunk]:
+    k = k or int(os.getenv("RAG_TOP_K", "3"))
+    max_chunk_chars = int(os.getenv("RAG_CHUNK_SIZE", "500"))
     ensure_vector_store()
     docs = retrieve_documents(query=query, k=k)
     chunks = [
         RetrievedChunk(
             source=doc.metadata.get("source", "unknown"),
-            content=doc.page_content,
+            content=doc.page_content[:max_chunk_chars],
         )
         for doc in docs
     ]
-    logger.info("Consulta RAG recuperou %s chunks", len(chunks))
+    logger.info("Consulta RAG recuperou %s chunks top_k=%s", len(chunks), k)
     return chunks
 
 
-def rag_pipeline(query: str, k: int = 3) -> RagResult:
+def rag_pipeline(query: str, k: int | None = None) -> RagResult:
     chunks = retrieve_context(query=query, k=k)
     if not chunks:
         return RagResult(
@@ -85,7 +88,7 @@ def rag_pipeline(query: str, k: int = 3) -> RagResult:
     prompt = f"""
 Voce e um assistente especializado em precificacao imobiliaria.
 
-Responda em portugues do Brasil.
+Responda em portugues do Brasil em no maximo 5 frases.
 Use somente o contexto recuperado.
 Se o contexto nao trouxer informacao suficiente, diga explicitamente que nao ha base documental suficiente.
 Nao invente dados nem regras.
@@ -96,12 +99,17 @@ Contexto:
 Pergunta:
 {query}
 """
+    logger.info(
+        "Prompt RAG approx_tokens=%s chunks=%s",
+        estimate_tokens(prompt),
+        len(chunks),
+    )
     try:
         response_text = get_llm().generate(prompt)
     except Exception as exc:
-        logger.exception("Falha na geracao Gemini do RAG; usando fallback extrativo. Erro: %s", exc)
+        logger.exception("Falha na geracao LLM do RAG; usando fallback extrativo. Erro: %s", exc)
         response_text = (
-            "Nao consegui usar o Gemini nesta chamada, mas encontrei contexto relevante nos documentos.\n\n"
+            "Nao consegui usar a LLM nesta chamada, mas encontrei contexto relevante nos documentos.\n\n"
             + "\n\n".join(
                 f"Fonte: {chunk.source}\n{chunk.content}"
                 for chunk in chunks

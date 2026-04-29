@@ -1,4 +1,5 @@
 import math
+import os
 
 from langchain_core.documents import Document
 
@@ -15,7 +16,8 @@ def _cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
     return numerator / (norm_a * norm_b)
 
 
-def retrieve_documents(query: str, k: int = 3) -> list[Document]:
+def retrieve_documents(query: str, k: int | None = None) -> list[Document]:
+    k = k or int(os.getenv("RAG_TOP_K", "3"))
     store = load_vector_store()
     embedding_function = get_embedding_model()
     query_embedding = embedding_function.embed_query(query)

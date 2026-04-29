@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from time import perf_counter
@@ -32,8 +33,8 @@ class AgentResponse:
 
 
 class ReActAgent:
-    def __init__(self, max_steps: int = 4) -> None:
-        self.max_steps = max_steps
+    def __init__(self, max_steps: int | None = None) -> None:
+        self.max_steps = max_steps or int(os.getenv("AGENT_MAX_STEPS", "3"))
         self.llm = get_llm()
 
     def run(self, message: str) -> AgentResponse:
