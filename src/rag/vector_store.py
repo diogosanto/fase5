@@ -16,6 +16,7 @@ MARKER_FILE = VECTORSTORE_PATH / "index_metadata.txt"
 def build_vector_store(
     documents: list[Document],
     persist_directory: Path = VECTORSTORE_PATH,
+    source_signature: str | None = None,
 ) -> dict:
     if persist_directory.exists():
         shutil.rmtree(persist_directory)
@@ -27,6 +28,7 @@ def build_vector_store(
 
     payload = {
         "marker": VECTORSTORE_MARKER,
+        "source_signature": source_signature,
         "documents": [
             {
                 "page_content": document.page_content,
@@ -48,10 +50,20 @@ def load_vector_store(persist_directory: Path = VECTORSTORE_PATH) -> dict:
     return json.loads(index_file.read_text(encoding="utf-8"))
 
 
-def vector_store_exists(persist_directory: Path = VECTORSTORE_PATH) -> bool:
+def vector_store_exists(persist_directory: Path = VECTORSTORE_PATH, source_signature: str | None = None) -> bool:
     index_file = persist_directory / "index.json"
     marker_file = persist_directory / "index_metadata.txt"
     if not index_file.exists() or not marker_file.exists():
         return False
 
-    return marker_file.read_text(encoding="utf-8").strip() == VECTORSTORE_MARKER
+    if marker_file.read_text(encoding="utf-8").strip() != VECTORSTORE_MARKER:
+        return False
+
+    if source_signature is None:
+        return True
+
+    try:
+        payload = json.loads(index_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return False
+    return payload.get("source_signature") == source_signature

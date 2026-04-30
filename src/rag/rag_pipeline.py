@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 from src.agent.llm import estimate_tokens, get_llm
 from src.rag.chunking import split_documents
-from src.rag.document_loader import load_markdown_documents
+from src.rag.document_loader import load_markdown_documents, raw_documents_signature
 from src.rag.retriever import retrieve_documents
 from src.rag.vector_store import build_vector_store, vector_store_exists
 
@@ -20,6 +20,7 @@ logger = logging.getLogger("precificador.rag")
 class RetrievedChunk:
     source: str
     content: str
+    chunk_index: int | None = None
 
 
 @dataclass
@@ -45,13 +46,13 @@ def build_rag_index() -> int:
         logger.warning("Nenhum documento markdown encontrado para indexacao RAG.")
         return 0
 
-    build_vector_store(chunks)
+    build_vector_store(chunks, source_signature=raw_documents_signature())
     logger.info("Indice RAG atualizado com %s chunks", len(chunks))
     return len(chunks)
 
 
 def ensure_vector_store() -> None:
-    if not vector_store_exists():
+    if not vector_store_exists(source_signature=raw_documents_signature()):
         build_rag_index()
 
 
@@ -64,6 +65,7 @@ def retrieve_context(query: str, k: int | None = None) -> list[RetrievedChunk]:
         RetrievedChunk(
             source=doc.metadata.get("source", "unknown"),
             content=doc.page_content[:max_chunk_chars],
+            chunk_index=doc.metadata.get("chunk_index"),
         )
         for doc in docs
     ]
