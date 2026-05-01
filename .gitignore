@@ -12,6 +12,7 @@ data/interim/
 data/processed/
 data/normalized/
 data/rag/vectorstore/
+src/data/eda/features_modelagem/
 
 # Dados de ambientes
 data/dev/
@@ -20,6 +21,7 @@ data/prod/
 
 # Artefatos grandes
 mlruns/
+src/training/mlruns/
 models/dev/
 models/test/
 models/prod/
@@ -29,6 +31,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.test_artifacts/
+tmp*/
 
 # Apenas metadados para python
 *.egg-info/

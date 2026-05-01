@@ -1,0 +1,113 @@
+stages:
+  ingest:
+    cmd: python src/data/0ingest.py
+    deps:
+      - src/data/0ingest.py
+    outs:
+      - src/data/raw
+
+  extract:
+    cmd: python src/data/1extract_all_itbi.py
+    deps:
+      - src/data/raw
+      - src/data/1extract_all_itbi.py
+    outs:
+      - data/interim/itbi_2023_2025_raw.csv
+
+  clean:
+    cmd: python src/data/2clean_all.py
+    deps:
+      - data/interim/itbi_2023_2025_raw.csv
+      - params.yaml
+      - src/config.py
+      - src/data/2clean_all.py
+    params:
+      - data_quality
+    outs:
+      - data/processed/itbi_clean.csv
+    metrics:
+      - data/processed/itbi_clean_profile.json:
+          cache: false
+
+  features:
+    cmd: python src/features/build_features_minimal.py
+    deps:
+      - data/processed/itbi_clean.csv
+      - params.yaml
+      - src/config.py
+      - src/features/build_features_minimal.py
+    outs:
+      - data/processed/itbi_features_minimal.csv
+    params:
+      - feature_quality
+    metrics:
+      - data/metrics/feature_contract.json:
+          cache: false
+
+  eda:
+    cmd: python src/features/modelagem/eda_valor_m2_bairro.py --input data/processed/itbi_features_minimal.csv
+    deps:
+      - data/processed/itbi_features_minimal.csv
+      - params.yaml
+      - src/config.py
+      - src/features/modelagem/eda_valor_m2_bairro.py
+    outs:
+      - src/data/eda/features_modelagem
+
+  train:
+    cmd: python src/training/train_mlflow.py
+    deps:
+      - data/processed/itbi_features_minimal.csv
+      - params.yaml
+      - src/config.py
+      - src/training/evaluation.py
+      - src/training/splits.py
+      - src/training/train_mlflow.py
+    params:
+      - model
+    outs:
+      - models/dev
+    metrics:
+      - data/metrics/train_metrics.json:
+          cache: false
+
+  validate:
+    cmd: python src/training/validate_model.py --env dev
+    deps:
+      - data/processed/itbi_features_minimal.csv
+      - models/dev
+      - params.yaml
+      - src/config.py
+      - src/training/evaluation.py
+      - src/training/splits.py
+      - src/training/validate_model.py
+    params:
+      - model
+    metrics:
+      - data/metrics/validation_dev.json:
+          cache: false
+
+  repro_check:
+    cmd: python scripts/check_reproducibility.py
+    deps:
+      - .env.example
+      - .gitignore
+      - Dockerfile
+      - README.md
+      - docker-compose.yml
+      - params.yaml
+      - pyproject.toml
+      - scripts/check_reproducibility.py
+      - src/config.py
+      - src/data/README.md
+      - src/data/0ingest.py
+      - src/data/1extract_all_itbi.py
+      - src/data/2clean_all.py
+      - src/features/build_features_minimal.py
+      - src/training/evaluation.py
+      - src/training/splits.py
+      - src/training/train_mlflow.py
+      - src/training/validate_model.py
+    metrics:
+      - data/metrics/reproducibility_report.json:
+          cache: false

@@ -1,0 +1,260 @@
+{
+  "version": "2026.04.30.2304",
+  "run_id": "9bce124f93984e89a1323cbc7de91121",
+  "best_model": "random_forest",
+  "mae": 1910962.0194887498,
+  "r2": 0.7168074397244455,
+  "target": "valor_venal_de_referencia",
+  "features": [
+    "bairro",
+    "cep_prefixo",
+    "area_do_terreno_m2",
+    "ano",
+    "mes"
+  ],
+  "n_rows": 53947,
+  "training_data_version": "717db8957760dff024e8a77deb6e08c97a2f8b31cb908e92bf9585626aad413d",
+  "git_sha": "88198151a1be19d7a78a2cf2b921cc51e63b0177",
+  "n_train": 43158,
+  "n_test": 10789,
+  "split_strategy": "temporal_holdout",
+  "train_period_start": "1995-11",
+  "train_period_end": "2025-06",
+  "test_period_start": "2025-06",
+  "test_period_end": "2026-01",
+  "segment_metrics": {
+    "by_period": [
+      {
+        "period": "2025-12",
+        "n": 1528,
+        "mae": 5126924.161131542,
+        "median_absolute_error": 386639.4600000009,
+        "bias": -24509.702540197453
+      },
+      {
+        "period": "2025-11",
+        "n": 1115,
+        "mae": 2987037.9843340954,
+        "median_absolute_error": 423775.25,
+        "bias": -755704.6572067111
+      },
+      {
+        "period": "2025-10",
+        "n": 1669,
+        "mae": 2341259.476192461,
+        "median_absolute_error": 296905.6950000003,
+        "bias": -816051.1801679562
+      },
+      {
+        "period": "2025-09",
+        "n": 1508,
+        "mae": 1454567.722834688,
+        "median_absolute_error": 292621.625,
+        "bias": -1263304.2682161534
+      },
+      {
+        "period": "2025-08",
+        "n": 1321,
+        "mae": 886891.9249544266,
+        "median_absolute_error": 64085.60499999998,
+        "bias": -200956.58256384975
+      },
+      {
+        "period": "2025-07",
+        "n": 1741,
+        "mae": 769509.3992225808,
+        "median_absolute_error": 91837.445,
+        "bias": 111096.35800754308
+      },
+      {
+        "period": "2025-06",
+        "n": 1906,
+        "mae": 440664.2727237015,
+        "median_absolute_error": 31338.21999999974,
+        "bias": 234170.45362004676
+      }
+    ],
+    "by_target_band": [
+      {
+        "target_band": "alto",
+        "n": 2590,
+        "mae": 4119975.6113055507,
+        "median_absolute_error": 628190.1449999996,
+        "bias": -2415602.176012114
+      },
+      {
+        "target_band": "medio_alto",
+        "n": 2701,
+        "mae": 2734441.9977891645,
+        "median_absolute_error": 386639.4600000009,
+        "bias": 711120.1171867703
+      },
+      {
+        "target_band": "medio_baixo",
+        "n": 2780,
+        "mae": 632298.9615693726,
+        "median_absolute_error": 130770.1000000001,
+        "bias": -42601.10902586548
+      },
+      {
+        "target_band": "baixo",
+        "n": 2718,
+        "mae": 295479.56062963925,
+        "median_absolute_error": 56909.909999999974,
+        "bias": 250423.1572217543
+      }
+    ],
+    "worst_bairros_by_mae": [
+      {
+        "bairro": "VL CARMOZINA/COLONIA",
+        "n": 80,
+        "mae": 46967945.213125005,
+        "median_absolute_error": 1688.8100000000559,
+        "bias": 46966889.706875004
+      },
+      {
+        "bairro": "CENTRO",
+        "n": 31,
+        "mae": 31457370.454354834,
+        "median_absolute_error": 44852068.885,
+        "bias": -31457370.454354834
+      },
+      {
+        "bairro": "VILA CLEMENTINO",
+        "n": 241,
+        "mae": 11552327.705103729,
+        "median_absolute_error": 13984968.29,
+        "bias": -11363405.968049787
+      },
+      {
+        "bairro": "POMPEIA",
+        "n": 73,
+        "mae": 8576661.566369863,
+        "median_absolute_error": 8586463.754999999,
+        "bias": -8576661.566369863
+      },
+      {
+        "bairro": "QUADRA C",
+        "n": 43,
+        "mae": 7866804.591976744,
+        "median_absolute_error": 7865891.085000001,
+        "bias": -7866804.591976744
+      },
+      {
+        "bairro": "VILA CARMOZINA",
+        "n": 39,
+        "mae": 7325424.3100000005,
+        "median_absolute_error": 7325424.3100000005,
+        "bias": 7325424.3100000005
+      },
+      {
+        "bairro": "SANTANA",
+        "n": 78,
+        "mae": 6795111.097903846,
+        "median_absolute_error": 117953.42000000179,
+        "bias": -6795111.097903846
+      },
+      {
+        "bairro": "VILA MARIANA",
+        "n": 93,
+        "mae": 6354373.029731185,
+        "median_absolute_error": 9874691.725,
+        "bias": -6274688.8533871
+      },
+      {
+        "bairro": "BROOKLIN",
+        "n": 332,
+        "mae": 5374271.703917543,
+        "median_absolute_error": 7488908.614999998,
+        "bias": 5316119.159907754
+      },
+      {
+        "bairro": "JD UBIRAJARA",
+        "n": 82,
+        "mae": 5340926.343963415,
+        "median_absolute_error": 7179605.905000001,
+        "bias": 5340926.343963415
+      }
+    ]
+  },
+  "temporal_backtest": {
+    "windows": [
+      {
+        "period": "2025-11",
+        "n": 1115,
+        "mae": 517045.1040687865,
+        "median_absolute_error": 0.0,
+        "p95_absolute_error": 5130612.797857143,
+        "bias": 317681.87186635216,
+        "r2": 0.9881696280005785
+      },
+      {
+        "period": "2025-12",
+        "n": 1528,
+        "mae": 792276.5585940889,
+        "median_absolute_error": 10852.470000000038,
+        "p95_absolute_error": 2071513.47274998,
+        "bias": 391201.74039959296,
+        "r2": 0.9501069645300422
+      },
+      {
+        "period": "2026-01",
+        "n": 1,
+        "mae": 625365.0,
+        "median_absolute_error": 625365.0,
+        "p95_absolute_error": 625365.0,
+        "bias": -625365.0,
+        "r2": 0.0
+      }
+    ],
+    "summary": {
+      "windows": 3,
+      "mean_mae": 644895.5542209585,
+      "max_mae": 792276.5585940889,
+      "min_mae": 517045.1040687865,
+      "std_mae": 113208.27502487543
+    }
+  },
+  "candidates": [
+    {
+      "model_name": "random_forest",
+      "run_id": "9bce124f93984e89a1323cbc7de91121",
+      "n": 10789,
+      "mae": 1910962.0194887498,
+      "median_absolute_error": 170383.6299999999,
+      "p95_absolute_error": 9281544.955,
+      "bias": -349750.2216250891,
+      "r2": 0.7168074397244455
+    },
+    {
+      "model_name": "regressao_linear",
+      "run_id": "72b00fb861a34683bf382101b7893f37",
+      "n": 10789,
+      "mae": 3554087.531184946,
+      "median_absolute_error": 941126.7085896134,
+      "p95_absolute_error": 20228732.919418648,
+      "bias": -1376192.1574178208,
+      "r2": 0.6949389535072201
+    },
+    {
+      "model_name": "ridge",
+      "run_id": "6ce08fd8280b4ac3bffa3de5e23f47a7",
+      "n": 10789,
+      "mae": 7274925.9177566795,
+      "median_absolute_error": 4411530.826785555,
+      "p95_absolute_error": 31793762.93334236,
+      "bias": -1955167.0067074671,
+      "r2": 0.29776061625093553
+    },
+    {
+      "model_name": "baseline_media",
+      "run_id": "f062a837fc5d4326bebe3390f452dfb4",
+      "n": 10789,
+      "mae": 9246688.110717239,
+      "median_absolute_error": 7680956.623013115,
+      "p95_absolute_error": 30741590.376986884,
+      "bias": -1316020.0990185835,
+      "r2": -0.009626047767609114
+    }
+  ]
+}
