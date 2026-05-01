@@ -1,3 +1,17 @@
+"""
+Testes unitarios do Agent ReAct.
+
+Objetivo para avaliacao/banca:
+- validar que o Agent possui pelo menos 3 tools;
+- garantir roteamento correto para RAG, estimativa de preco e comparacao regional;
+- confirmar que a resposta contem answer, tools_used, observations e metadata;
+- validar que `AGENT_MAX_STEPS` limita loops.
+
+As tools e a LLM sao fake/mockadas para evitar chamadas externas e manter o teste deterministico.
+Execute com:
+    python -m unittest tests.unit.test_react_agent
+"""
+
 import json
 import os
 import unittest
@@ -67,13 +81,19 @@ def fake_region_comparer(action_input):
 
 
 class ReActAgentTests(unittest.TestCase):
+    """Cobre regras de escolha de tools e estrutura de resposta do Agent."""
+
     def test_agent_has_at_least_three_registered_tools(self) -> None:
+        """Garante o requisito minimo de 3 tools registradas."""
+
         self.assertGreaterEqual(len(TOOLS), 3)
         self.assertIn("rag_search", TOOLS)
         self.assertIn("price_estimator", TOOLS)
         self.assertIn("region_comparer", TOOLS)
 
     def test_generic_question_uses_rag_search(self) -> None:
+        """Perguntas conceituais devem acionar busca documental."""
+
         agent = ReActAgent(max_steps=3, llm=NeverCalledLLM())
 
         with patch("src.agent.react_agent.TOOLS", {"rag_search": fake_rag_search}):
@@ -84,6 +104,8 @@ class ReActAgentTests(unittest.TestCase):
         self.assertEqual(response.metadata["agent_type"], "react")
 
     def test_property_price_question_uses_price_estimator(self) -> None:
+        """Perguntas de estimativa com campos do modelo devem acionar price_estimator."""
+
         agent = ReActAgent(max_steps=3, llm=NeverCalledLLM())
 
         with patch("src.agent.react_agent.TOOLS", {"price_estimator": fake_price_estimator}):
@@ -93,6 +115,8 @@ class ReActAgentTests(unittest.TestCase):
         self.assertIn("Estimativa gerada pelo modelo de predicao", response.answer)
 
     def test_comparison_question_uses_region_comparer(self) -> None:
+        """Perguntas comparativas devem acionar region_comparer."""
+
         agent = ReActAgent(max_steps=3, llm=NeverCalledLLM())
 
         with patch("src.agent.react_agent.TOOLS", {"region_comparer": fake_region_comparer}):
@@ -102,6 +126,8 @@ class ReActAgentTests(unittest.TestCase):
         self.assertIn("PINHEIROS", response.answer)
 
     def test_agent_returns_answer_tools_observations_and_metadata(self) -> None:
+        """Valida contrato estruturado retornado pelo Agent."""
+
         agent = ReActAgent(max_steps=3, llm=NeverCalledLLM())
 
         with patch("src.agent.react_agent.TOOLS", {"rag_search": fake_rag_search}):
@@ -114,6 +140,8 @@ class ReActAgentTests(unittest.TestCase):
         self.assertEqual(response.metadata["steps_executed"], 1)
 
     def test_agent_respects_agent_max_steps(self) -> None:
+        """Garante que o Agent para ao atingir AGENT_MAX_STEPS."""
+
         with patch.dict(os.environ, {"AGENT_MAX_STEPS": "2"}, clear=False):
             agent = ReActAgent(llm=UnknownToolLLM())
 

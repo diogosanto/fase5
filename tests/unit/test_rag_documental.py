@@ -1,3 +1,18 @@
+"""
+Testes unitarios do RAG documental.
+
+Objetivo para avaliacao/banca:
+- validar carregamento de documentos `.md` e `.txt`;
+- garantir chunking com metadata de fonte e `chunk_index`;
+- validar que o retriever respeita top_k;
+- garantir que `retrieve_context` retorna fonte e indice do chunk;
+- validar que mudancas nos documentos alteram a assinatura do indice.
+
+Os testes usam arquivos temporarios e mocks de embedding/vector store para serem rapidos e deterministas.
+Execute com:
+    python -m unittest tests.unit.test_rag_documental
+"""
+
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,12 +27,18 @@ from src.rag.retriever import retrieve_documents
 
 
 class FakeEmbeddingModel:
+    """Embedding fake com vetor fixo para testar ordenacao do retriever sem modelo externo."""
+
     def embed_query(self, text):
         return [1.0, 0.0]
 
 
 class RagDocumentalTests(unittest.TestCase):
+    """Cobre o fluxo documental: loader, chunking, retriever e metadata."""
+
     def test_loads_markdown_and_text_documents(self) -> None:
+        """Garante que a base documental aceita arquivos Markdown e texto puro."""
+
         with tempfile.TemporaryDirectory() as temp_dir:
             raw_path = Path(temp_dir)
             (raw_path / "fatores.md").write_text("Localizacao influencia preco.", encoding="utf-8")
@@ -29,6 +50,8 @@ class RagDocumentalTests(unittest.TestCase):
         self.assertTrue(all("source" in document.metadata for document in documents))
 
     def test_chunking_preserves_source_and_adds_chunk_index(self) -> None:
+        """Valida que cada chunk mantem a fonte original e recebe indice auditavel."""
+
         document = Document(
             page_content="Localizacao influencia preco. " * 20,
             metadata={"source": "fatores_precificacao.md"},
@@ -42,6 +65,8 @@ class RagDocumentalTests(unittest.TestCase):
         self.assertEqual(chunks[1].metadata["chunk_index"], 1)
 
     def test_retriever_returns_relevant_documents_and_respects_top_k(self) -> None:
+        """Confirma que o retriever ordena por similaridade e limita resultados por top_k."""
+
         store = {
             "documents": [
                 {
@@ -65,6 +90,8 @@ class RagDocumentalTests(unittest.TestCase):
         self.assertEqual(documents[0].metadata["source"], "localizacao_bairros.md")
 
     def test_retrieve_context_returns_sources_and_chunk_index(self) -> None:
+        """Garante que a camada de contexto usada pela tool preserva fonte e chunk_index."""
+
         documents = [
             Document(
                 page_content="Localizacao, transporte e infraestrutura influenciam o preco.",
@@ -81,6 +108,8 @@ class RagDocumentalTests(unittest.TestCase):
         self.assertEqual(chunks[0].chunk_index, 2)
 
     def test_raw_documents_signature_changes_when_document_changes(self) -> None:
+        """Valida invalidacao do indice quando documentos brutos sao alterados."""
+
         with tempfile.TemporaryDirectory() as temp_dir:
             raw_path = Path(temp_dir)
             document_path = raw_path / "fatores.md"

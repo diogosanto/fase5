@@ -1,3 +1,17 @@
+"""
+Testes unitarios das tools usadas pelo Agent ReAct.
+
+Objetivo para avaliacao/banca:
+- validar que as 3 tools obrigatorias estao registradas;
+- garantir que `rag_search` retorna contexto, fontes e status;
+- garantir que `price_estimator` valida os campos exigidos pelo modelo;
+- garantir que `region_comparer` calcula metricas com dados processados e trata bairros inexistentes.
+
+Os testes usam mocks/fakes para evitar carregar MLflow, chamar LLM ou depender de arquivos grandes.
+Execute com:
+    python -m unittest tests.unit.test_agent_tools
+"""
+
 import json
 import unittest
 from types import SimpleNamespace
@@ -9,12 +23,18 @@ from src.agent import tools
 
 
 class FakeModel:
+    """Modelo minimo para validar o adapter de predicao sem carregar artefatos MLflow reais."""
+
     def predict(self, dataframe):
         return [950000.0]
 
 
 class AgentToolsTests(unittest.TestCase):
+    """Cobre o contrato publico das tools consumidas pelo Agent."""
+
     def test_required_tools_are_registered_with_descriptions(self) -> None:
+        """Garante que o Agent consiga descobrir nome, descricao e funcao das tools."""
+
         for tool_name in ["rag_search", "price_estimator", "region_comparer"]:
             self.assertIn(tool_name, tools.TOOLS)
             self.assertIn(tool_name, tools.TOOL_REGISTRY)
@@ -23,6 +43,8 @@ class AgentToolsTests(unittest.TestCase):
             self.assertTrue(callable(tools.TOOL_REGISTRY[tool_name].function))
 
     def test_rag_search_returns_context_sources_and_status(self) -> None:
+        """Valida que a busca documental retorna contexto auditavel e fontes reais."""
+
         fake_chunks = [
             SimpleNamespace(source="doc_1.md", content="Localizacao influencia o preco."),
             SimpleNamespace(source="doc_2.md", content="Area e infraestrutura tambem influenciam."),
@@ -40,6 +62,8 @@ class AgentToolsTests(unittest.TestCase):
         self.assertEqual(result.metadata["status"], "success")
 
     def test_rag_search_handles_no_context(self) -> None:
+        """Garante resposta controlada quando o retriever nao encontra chunks relevantes."""
+
         with patch("src.agent.tools._retrieve_context", return_value=[]):
             result = tools.rag_search({"query": "Pergunta sem contexto"})
 
@@ -49,6 +73,8 @@ class AgentToolsTests(unittest.TestCase):
         self.assertEqual(payload["sources"], [])
 
     def test_price_estimator_validates_required_fields(self) -> None:
+        """Confirma que a tool nao inventa predicao quando faltam campos do modelo."""
+
         result = tools.price_estimator({"bairro": "Moema", "area": 80})
 
         payload = json.loads(result.content)
@@ -60,6 +86,8 @@ class AgentToolsTests(unittest.TestCase):
         self.assertIn("media_valor_cep", payload["missing_fields"])
 
     def test_price_estimator_calls_existing_model_adapter(self) -> None:
+        """Valida o contrato de entrada/saida da tool de preco usando um modelo fake."""
+
         with patch("src.agent.tools._load_prediction_model", return_value=(FakeModel(), "model_test")):
             result = tools.price_estimator(
                 {
@@ -79,6 +107,8 @@ class AgentToolsTests(unittest.TestCase):
         self.assertEqual(payload["versao_modelo"], "model_test")
 
     def test_region_comparer_returns_metrics_for_existing_regions(self) -> None:
+        """Confirma que regioes validas retornam metricas derivadas do dataset processado."""
+
         dataframe = pd.DataFrame(
             [
                 {
@@ -116,6 +146,8 @@ class AgentToolsTests(unittest.TestCase):
         self.assertEqual(result.metadata["status"], "success")
 
     def test_region_comparer_handles_unknown_region(self) -> None:
+        """Garante erro amigavel quando uma regiao nao existe na base processada."""
+
         dataframe = pd.DataFrame(
             [
                 {"bairro": "MOEMA", "valor_m2": 12000.0, "valor_venal_de_referencia": 1000000.0},

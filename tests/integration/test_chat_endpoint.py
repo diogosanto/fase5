@@ -1,3 +1,19 @@
+"""
+Testes de integracao do endpoint /chat.
+
+Objetivo para avaliacao/banca:
+- validar o contrato HTTP do chat usado na camada RAG + Agent + LLM;
+- confirmar entrada obrigatoria `message` e entrada opcional `property_data`;
+- verificar resposta estruturada com `answer`, `tools_used` e `metadata`;
+- validar tratamento padronizado de erros internos e erros do provedor LLM;
+- garantir que perguntas com dados de imovel podem acionar `price_estimator`.
+
+Os testes usam mocks para nao carregar MLflow real e para nao chamar Groq/LLM.
+Assim, a validacao e rapida, deterministica e nao consome tokens.
+Execute com:
+    python -m unittest tests.integration.test_chat_endpoint
+"""
+
 import importlib
 import sys
 import unittest
@@ -7,20 +23,6 @@ import httpx
 
 from src.agent.orchestrator import AgentOrchestrator
 from src.agent.tools import ToolResult
-
-
-"""
-Testes de integracao do endpoint /chat.
-
-Este arquivo valida o contrato HTTP do chat usado na camada de RAG + Agent + LLM:
-- entrada obrigatoria `message` e entrada opcional `property_data`;
-- resposta estruturada com `answer`, `tools_used` e `metadata`;
-- tratamento padronizado de erros internos e erros do provedor LLM;
-- roteamento de perguntas com dados de imovel para a tool `price_estimator`.
-
-Os testes usam mocks para nao carregar um modelo MLflow real e para nao chamar Groq/LLM.
-Assim, a validacao e rapida, deterministica e nao consome tokens.
-"""
 
 
 class FakeModel:
@@ -74,6 +76,8 @@ class ChatEndpointTests(unittest.IsolatedAsyncioTestCase):
             return await client.post("/chat", json=payload)
 
     async def test_chat_with_valid_message_returns_structured_response(self) -> None:
+        """Mensagem valida deve retornar 200 e payload no contrato esperado."""
+
         self.api_main.agent_orchestrator = FakeAgent()
 
         response = await self.post_chat({"message": "Quais fatores influenciam o preco?"})
@@ -86,6 +90,8 @@ class ChatEndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(payload["metadata"]["request_id"])
 
     async def test_chat_accepts_optional_property_data(self) -> None:
+        """`property_data` deve ser aceito e repassado ao Agent."""
+
         fake_agent = FakeAgent()
         self.api_main.agent_orchestrator = fake_agent
 
@@ -107,16 +113,22 @@ class ChatEndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Moema", fake_agent.last_message)
 
     async def test_chat_rejects_empty_message(self) -> None:
+        """Mensagem vazia deve ser barrada pela validacao Pydantic/FastAPI."""
+
         response = await self.post_chat({"message": "   "})
 
         self.assertEqual(response.status_code, 422)
 
     async def test_chat_rejects_missing_message(self) -> None:
+        """Requisicao sem `message` deve retornar 422."""
+
         response = await self.post_chat({})
 
         self.assertEqual(response.status_code, 422)
 
     async def test_chat_maps_agent_error_to_500(self) -> None:
+        """Falha interna do Agent deve virar erro controlado 500."""
+
         self.api_main.agent_orchestrator = FakeAgent(error=RuntimeError("falha controlada"))
 
         response = await self.post_chat({"message": "Teste de erro"})
@@ -127,6 +139,8 @@ class ChatEndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("request_id", payload["error"])
 
     async def test_chat_maps_llm_error_to_503(self) -> None:
+        """Falha do provedor LLM/Groq deve virar erro controlado 503."""
+
         self.api_main.agent_orchestrator = FakeAgent(error=RuntimeError("groq rate limit"))
 
         response = await self.post_chat({"message": "Teste de erro LLM"})
