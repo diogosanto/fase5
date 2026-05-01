@@ -4,19 +4,23 @@ import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
-import mlflow.pyfunc
 import pandas as pd
-
-from src.rag.rag_pipeline import rag_pipeline
-
 
 logger = logging.getLogger("precificador.agent.tools")
 PROCESSED_DATA_PATH = Path("data/processed/itbi_features_minimal.csv")
 MODEL_CANDIDATE_DIRS = [
     Path("models/prod"),
     Path("models/dev"),
+]
+REQUIRED_MODEL_FIELDS = [
+    "bairro",
+    "area_do_terreno_m2",
+    "valor_m2",
+    "ano_mes",
+    "media_valor_cep",
 ]
 
 
@@ -25,6 +29,29 @@ class ToolResult:
     tool_name: str
     content: str
     metadata: dict[str, Any]
+
+    @property
+    def status(self) -> str:
+        return str(self.metadata.get("status", "success"))
+
+    def to_dict(self) -> dict[str, Any]:
+        try:
+            payload = json.loads(self.content)
+        except json.JSONDecodeError:
+            payload = {"content": self.content}
+        return {
+            "tool": self.tool_name,
+            "status": self.status,
+            "content": payload,
+            "metadata": self.metadata,
+        }
+
+
+@dataclass(frozen=True)
+class ToolSpec:
+    name: str
+    description: str
+    function: Any
 
 
 def _extract_json_payload(raw_input: Any) -> Any:
@@ -45,6 +72,38 @@ def _extract_json_payload(raw_input: Any) -> Any:
 
 def _normalize_region_name(region_name: str) -> str:
     return str(region_name).strip().upper()
+
+
+def _json_tool_result(tool_name: str, payload: dict[str, Any], metadata: dict[str, Any] | None = None) -> ToolResult:
+    payload = {"tool": tool_name, **payload}
+    status = str(payload.get("status", "success"))
+    result_metadata = {"status": status, **(metadata or {})}
+    return ToolResult(
+        tool_name=tool_name,
+        content=json.dumps(payload, ensure_ascii=False),
+        metadata=result_metadata,
+    )
+
+
+def _safe_float(value: Any) -> float:
+    return float(str(value).replace(",", "."))
+
+
+def _safe_int(value: Any) -> int:
+    return int(float(str(value).replace(",", ".")))
+
+
+def _normalize_prediction_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(payload)
+    if "area_do_terreno_m2" not in normalized and "area" in normalized:
+        normalized["area_do_terreno_m2"] = normalized["area"]
+    return normalized
+
+
+def _retrieve_context(query: str):
+    from src.rag.rag_pipeline import retrieve_context
+
+    return retrieve_context(query=query)
 
 
 def _parse_prediction_payload_from_text(text: str) -> dict[str, Any]:
@@ -91,39 +150,77 @@ def _parse_region_payload_from_text(text: str) -> dict[str, Any]:
 
 
 def rag_search(action_input: Any) -> ToolResult:
+    started_at = perf_counter()
     payload = _extract_json_payload(action_input)
     query = payload.get("query") if isinstance(payload, dict) else str(payload)
-    if not query or not str(query).strip():
-        return ToolResult(
-            tool_name="rag_search",
-            content="Nenhuma pergunta valida foi informada para a busca documental.",
-            metadata={"chunks_retrieved": 0, "sources": []},
-        )
+    logger.info("Tool rag_search chamada query=%s", str(query)[:160])
 
-    result = rag_pipeline(query=query, k=3)
+    if not query or not str(query).strip():
+        result = _json_tool_result(
+            "rag_search",
+            {
+                "query": "",
+                "context": "",
+                "sources": [],
+                "chunks_retrieved": 0,
+                "status": "error",
+                "error": "empty_query",
+                "message": "Nenhuma pergunta valida foi informada para a busca documental.",
+            },
+            {"chunks_retrieved": 0, "sources": [], "duration_ms": int((perf_counter() - started_at) * 1000)},
+        )
+        logger.warning("Tool rag_search status=error duration_ms=%s", result.metadata["duration_ms"])
+        return result
+
+    chunks = _retrieve_context(query=str(query).strip())
+    sources = list(dict.fromkeys(chunk.source for chunk in chunks))
+    context = "\n\n".join(chunk.content for chunk in chunks)
+    if not chunks:
+        result = _json_tool_result(
+            "rag_search",
+            {
+                "query": str(query).strip(),
+                "context": "",
+                "sources": [],
+                "chunks_retrieved": 0,
+                "status": "no_context",
+                "message": "Nenhum contexto relevante foi encontrado nos documentos.",
+            },
+            {"chunks_retrieved": 0, "sources": [], "duration_ms": int((perf_counter() - started_at) * 1000)},
+        )
+        logger.info("Tool rag_search status=no_context duration_ms=%s", result.metadata["duration_ms"])
+        return result
+
+    duration_ms = int((perf_counter() - started_at) * 1000)
     content = {
-        "answer": result.answer,
-        "sources": result.sources,
+        "query": str(query).strip(),
+        "context": context,
+        "answer": "Contexto recuperado com sucesso. Use os chunks e fontes retornados para responder sem inventar dados.",
+        "sources": sources,
+        "chunks_retrieved": len(chunks),
         "chunks": [
             {
                 "source": chunk.source,
                 "content": chunk.content,
+                "chunk_index": getattr(chunk, "chunk_index", None),
             }
-            for chunk in result.chunks
+            for chunk in chunks
         ],
+        "status": "success",
     }
-    return ToolResult(
-        tool_name="rag_search",
-        content=json.dumps(content, ensure_ascii=False),
-        metadata={
-            "chunks_retrieved": result.chunks_retrieved,
-            "sources": result.sources,
-        },
+    result = _json_tool_result(
+        "rag_search",
+        content,
+        {"chunks_retrieved": len(chunks), "sources": sources, "duration_ms": duration_ms},
     )
+    logger.info("Tool rag_search status=success chunks=%s duration_ms=%s", len(chunks), duration_ms)
+    return result
 
 
 @lru_cache(maxsize=1)
 def _load_prediction_model():
+    import mlflow.pyfunc
+
     for model_root in MODEL_CANDIDATE_DIRS:
         if not model_root.exists():
             continue
@@ -139,62 +236,102 @@ def _load_prediction_model():
 
 
 def price_estimator(action_input: Any) -> ToolResult:
+    started_at = perf_counter()
     payload = _extract_json_payload(action_input)
     if isinstance(payload, str):
         payload = _parse_prediction_payload_from_text(payload)
     if not isinstance(payload, dict):
-        return ToolResult(
-            tool_name="price_estimator",
-            content="Entrada invalida. Envie um objeto JSON com os campos do modelo.",
-            metadata={"missing_fields": ["bairro", "area_do_terreno_m2", "valor_m2", "ano_mes", "media_valor_cep"]},
+        result = _json_tool_result(
+            "price_estimator",
+            {
+                "input": {},
+                "status": "error",
+                "error": "invalid_input",
+                "message": "Entrada invalida. Envie um objeto JSON com os campos do modelo.",
+                "required_fields": REQUIRED_MODEL_FIELDS,
+            },
+            {"missing_fields": REQUIRED_MODEL_FIELDS, "duration_ms": int((perf_counter() - started_at) * 1000)},
         )
+        logger.warning("Tool price_estimator status=error reason=invalid_input")
+        return result
 
-    required_fields = [
-        "bairro",
-        "area_do_terreno_m2",
-        "valor_m2",
-        "ano_mes",
-        "media_valor_cep",
-    ]
-    missing_fields = [field for field in required_fields if field not in payload or payload[field] in (None, "")]
+    payload = _normalize_prediction_payload(payload)
+    logger.info("Tool price_estimator chamada campos=%s", sorted(payload.keys()))
+
+    missing_fields = [field for field in REQUIRED_MODEL_FIELDS if field not in payload or payload[field] in (None, "")]
     if missing_fields:
-        return ToolResult(
-            tool_name="price_estimator",
-            content=f"Campos obrigatorios ausentes para estimativa: {', '.join(missing_fields)}.",
-            metadata={"missing_fields": missing_fields},
+        result = _json_tool_result(
+            "price_estimator",
+            {
+                "input": payload,
+                "status": "error",
+                "error": "missing_fields",
+                "message": f"Campos obrigatorios ausentes para estimativa: {', '.join(missing_fields)}.",
+                "required_fields": REQUIRED_MODEL_FIELDS,
+                "missing_fields": missing_fields,
+            },
+            {"missing_fields": missing_fields, "duration_ms": int((perf_counter() - started_at) * 1000)},
         )
+        logger.warning("Tool price_estimator status=error missing_fields=%s", missing_fields)
+        return result
 
     try:
         model, model_version = _load_prediction_model()
     except FileNotFoundError as exc:
-        return ToolResult(
-            tool_name="price_estimator",
-            content=str(exc),
-            metadata={"error": "model_not_found"},
-        )
-
-    frame = pd.DataFrame(
-        [
+        result = _json_tool_result(
+            "price_estimator",
             {
-                "bairro": str(payload["bairro"]).strip().upper(),
-                "area_do_terreno_m2": float(payload["area_do_terreno_m2"]),
-                "valor_m2": float(payload["valor_m2"]),
-                "ano_mes": int(payload["ano_mes"]),
-                "media_valor_cep": float(payload["media_valor_cep"]),
-            }
-        ]
-    )
-    prediction = float(model.predict(frame)[0])
+                "input": payload,
+                "status": "error",
+                "error": "model_not_found",
+                "message": str(exc),
+            },
+            {"error": "model_not_found", "duration_ms": int((perf_counter() - started_at) * 1000)},
+        )
+        logger.warning("Tool price_estimator status=error reason=model_not_found")
+        return result
+
+    try:
+        model_input = {
+            "bairro": str(payload["bairro"]).strip().upper(),
+            "area_do_terreno_m2": _safe_float(payload["area_do_terreno_m2"]),
+            "valor_m2": _safe_float(payload["valor_m2"]),
+            "ano_mes": _safe_int(payload["ano_mes"]),
+            "media_valor_cep": _safe_float(payload["media_valor_cep"]),
+        }
+        frame = pd.DataFrame([model_input])
+        prediction = float(model.predict(frame)[0])
+    except Exception as exc:
+        result = _json_tool_result(
+            "price_estimator",
+            {
+                "input": payload,
+                "status": "error",
+                "error": "prediction_error",
+                "message": f"Falha controlada ao executar a predicao: {exc}",
+            },
+            {"error": "prediction_error", "duration_ms": int((perf_counter() - started_at) * 1000)},
+        )
+        logger.exception("Tool price_estimator status=error reason=prediction_error")
+        return result
+
+    duration_ms = int((perf_counter() - started_at) * 1000)
     content = {
+        "input": model_input,
+        "estimated_price": prediction,
+        "currency": "BRL",
         "valor_estimado": prediction,
         "unidade": "R$",
         "versao_modelo": model_version,
+        "status": "success",
     }
-    return ToolResult(
-        tool_name="price_estimator",
-        content=json.dumps(content, ensure_ascii=False),
-        metadata={"model_version": model_version},
+    result = _json_tool_result(
+        "price_estimator",
+        content,
+        {"model_version": model_version, "duration_ms": duration_ms},
     )
+    logger.info("Tool price_estimator status=success model_version=%s duration_ms=%s", model_version, duration_ms)
+    return result
 
 
 @lru_cache(maxsize=1)
@@ -208,6 +345,7 @@ def _load_region_dataframe() -> pd.DataFrame:
 
 
 def region_comparer(action_input: Any) -> ToolResult:
+    started_at = perf_counter()
     payload = _extract_json_payload(action_input)
     if isinstance(payload, str):
         payload = _parse_region_payload_from_text(payload)
@@ -217,22 +355,38 @@ def region_comparer(action_input: Any) -> ToolResult:
     region_a = payload.get("region_a")
     region_b = payload.get("region_b")
     metric = payload.get("metric", "valor_m2")
+    logger.info("Tool region_comparer chamada region_a=%s region_b=%s metric=%s", region_a, region_b, metric)
 
     if not region_a or not region_b:
-        return ToolResult(
-            tool_name="region_comparer",
-            content="Para comparar regioes, informe `region_a` e `region_b`.",
-            metadata={"missing_fields": ["region_a", "region_b"]},
+        result = _json_tool_result(
+            "region_comparer",
+            {
+                "regions": [],
+                "status": "error",
+                "error": "missing_fields",
+                "message": "Para comparar regioes, informe `region_a` e `region_b`.",
+                "missing_fields": ["region_a", "region_b"],
+            },
+            {"missing_fields": ["region_a", "region_b"], "duration_ms": int((perf_counter() - started_at) * 1000)},
         )
+        logger.warning("Tool region_comparer status=error missing_fields=%s", ["region_a", "region_b"])
+        return result
 
     try:
         dataframe = _load_region_dataframe()
     except FileNotFoundError as exc:
-        return ToolResult(
-            tool_name="region_comparer",
-            content=str(exc),
-            metadata={"error": "dataset_not_found"},
+        result = _json_tool_result(
+            "region_comparer",
+            {
+                "regions": [region_a, region_b],
+                "status": "error",
+                "error": "dataset_not_found",
+                "message": str(exc),
+            },
+            {"error": "dataset_not_found", "duration_ms": int((perf_counter() - started_at) * 1000)},
         )
+        logger.warning("Tool region_comparer status=error reason=dataset_not_found")
+        return result
 
     region_a_normalized = _normalize_region_name(region_a)
     region_b_normalized = _normalize_region_name(region_b)
@@ -253,19 +407,34 @@ def region_comparer(action_input: Any) -> ToolResult:
     available_regions = stats["bairro"].tolist()
     missing_regions = [region for region in [region_a_normalized, region_b_normalized] if region not in available_regions]
     if missing_regions:
-        return ToolResult(
-            tool_name="region_comparer",
-            content=f"Regioes nao encontradas na base: {', '.join(missing_regions)}.",
-            metadata={"missing_regions": missing_regions},
+        result = _json_tool_result(
+            "region_comparer",
+            {
+                "regions": [region_a_normalized, region_b_normalized],
+                "status": "error",
+                "error": "regions_not_found",
+                "message": f"Regioes nao encontradas na base: {', '.join(missing_regions)}.",
+                "missing_regions": missing_regions,
+            },
+            {"missing_regions": missing_regions, "duration_ms": int((perf_counter() - started_at) * 1000)},
         )
+        logger.warning("Tool region_comparer status=error missing_regions=%s", missing_regions)
+        return result
 
     region_a_stats = stats[stats["bairro"] == region_a_normalized].iloc[0]
     region_b_stats = stats[stats["bairro"] == region_b_normalized].iloc[0]
     difference = float(region_a_stats["media_metric"] - region_b_stats["media_metric"])
     higher_region = region_a_normalized if difference >= 0 else region_b_normalized
+    metrics_payload = {
+        region_a_normalized: _region_metrics(dataframe, region_a_normalized),
+        region_b_normalized: _region_metrics(dataframe, region_b_normalized),
+    }
+    duration_ms = int((perf_counter() - started_at) * 1000)
 
     content = {
+        "regions": [region_a_normalized, region_b_normalized],
         "metric": metric,
+        "metrics": metrics_payload,
         "region_a": {
             "bairro": region_a_normalized,
             "media": float(region_a_stats["media_metric"]),
@@ -280,16 +449,58 @@ def region_comparer(action_input: Any) -> ToolResult:
         },
         "higher_region": higher_region,
         "absolute_difference": abs(difference),
+        "status": "success",
     }
-    return ToolResult(
-        tool_name="region_comparer",
-        content=json.dumps(content, ensure_ascii=False),
-        metadata={"metric": metric},
+    result = _json_tool_result(
+        "region_comparer",
+        content,
+        {"metric": metric, "duration_ms": duration_ms},
     )
+    logger.info("Tool region_comparer status=success regions=%s duration_ms=%s", content["regions"], duration_ms)
+    return result
+
+
+def _region_metrics(dataframe: pd.DataFrame, region_name: str) -> dict[str, Any]:
+    region_df = dataframe[dataframe["bairro"] == region_name]
+    price_column = "valor_venal_de_referencia" if "valor_venal_de_referencia" in region_df.columns else None
+
+    metrics = {
+        "count": int(len(region_df)),
+        "avg_price_m2": float(region_df["valor_m2"].mean()) if "valor_m2" in region_df.columns else None,
+        "median_price_m2": float(region_df["valor_m2"].median()) if "valor_m2" in region_df.columns else None,
+    }
+    if price_column:
+        metrics.update(
+            {
+                "avg_price": float(region_df[price_column].mean()),
+                "median_price": float(region_df[price_column].median()),
+                "min_price": float(region_df[price_column].min()),
+                "max_price": float(region_df[price_column].max()),
+            }
+        )
+    return metrics
 
 
 TOOLS = {
     "rag_search": rag_search,
     "price_estimator": price_estimator,
     "region_comparer": region_comparer,
+}
+
+TOOL_REGISTRY = {
+    "rag_search": ToolSpec(
+        name="rag_search",
+        description="Busca contexto e fontes nos documentos indexados pelo RAG, sem chamar LLM diretamente.",
+        function=rag_search,
+    ),
+    "price_estimator": ToolSpec(
+        name="price_estimator",
+        description="Executa inferencia no modelo existente usando bairro, area_do_terreno_m2, valor_m2, ano_mes e media_valor_cep.",
+        function=price_estimator,
+    ),
+    "region_comparer": ToolSpec(
+        name="region_comparer",
+        description="Compara bairros/regioes usando metricas calculadas do dataset processado.",
+        function=region_comparer,
+    ),
 }

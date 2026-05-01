@@ -15,4 +15,10 @@ def split_documents(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
     )
-    return splitter.split_documents(documents)
+    chunks = splitter.split_documents(documents)
+    for index, chunk in enumerate(chunks):
+        chunk.metadata = {
+            **chunk.metadata,
+            "chunk_index": index,
+        }
+    return chunks
