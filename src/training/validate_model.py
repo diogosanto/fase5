@@ -2,17 +2,21 @@ import argparse
 import json
 import os
 import re
+import sys
 from pathlib import Path
 
 import mlflow.sklearn
 import pandas as pd
 
-from src.config import load_params
-from src.training.evaluation import regression_metrics, segment_metrics
-from src.training.splits import get_period_range, split_temporal_holdout
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.config import load_params  # noqa: E402
+from src.training.evaluation import regression_metrics, segment_metrics  # noqa: E402
+from src.training.splits import get_period_range, split_temporal_holdout  # noqa: E402
+
+
 DATA_PATH = PROJECT_ROOT / "data" / "processed" / "itbi_features_minimal.csv"
 MODEL_PARAMS = load_params().get("model", {})
 TARGET = str(MODEL_PARAMS.get("target_column", "valor_venal_de_referencia"))
