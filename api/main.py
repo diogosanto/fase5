@@ -4,7 +4,7 @@ import os
 import re
 import uuid
 from time import perf_counter
-
+from src.security.guardrails import validate_input, validate_output
 import mlflow.pyfunc
 import pandas as pd
 from fastapi import FastAPI
