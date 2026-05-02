@@ -1,15 +1,19 @@
 import json
 import os
 import re
+import sys
 import unicodedata
 from pathlib import Path
 
 import pandas as pd
 
-from src.config import load_params
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.config import load_params  # noqa: E402
+
+
 INTERIM_PATH = PROJECT_ROOT / "data" / "interim" / "itbi_2023_2025_raw.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 REPORT_PATH = PROCESSED_DIR / "itbi_clean_profile.json"
