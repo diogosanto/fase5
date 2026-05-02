@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "failed_checks": [],
+  "checks": {
+    "python_version": {
+      "passed": true,
+      "value": "3.10.6",
+      "expected": ">=3.10,<3.12"
+    },
+    "required_files": {
+      "passed": true,
+      "missing": []
+    },
+    "readme_commands": {
+      "passed": true,
+      "missing": []
+    },
+    "dvc_stages": {
+      "passed": true,
+      "missing": []
+    },
+    "pyproject_dependencies": {
+      "passed": true,
+      "missing": []
+    },
+    "gitignore_artifacts": {
+      "passed": true,
+      "missing": []
+    },
+    "critical_imports": {
+      "passed": true,
+      "missing": []
+    },
+    "unit_smoke_tests": {
+      "passed": true,
+      "returncode": 0,
+      "summary": "ro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\n  C:\\Users\\brunn\\Git_Projects\\reset\\fase5\\.venv\\lib\\site-packages\\matplotlib\\_fontconfig_pattern.py:88: PyparsingDeprecationWarning: 'parseString' deprecated - use 'parse_string'\n    parse = parser.parseString(pattern)\n\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\n  C:\\Users\\brunn\\Git_Projects\\reset\\fase5\\.venv\\lib\\site-packages\\matplotlib\\_fontconfig_pattern.py:92: PyparsingDeprecationWarning: 'resetCache' deprecated - use 'reset_cache'\n    parser.resetCache()\n\ntests/unit/test_eda_valor_m2_bairro.py::EdaValorM2BairroTests::test_export_images_creates_five_pngs\n  C:\\Users\\brunn\\Git_Projects\\reset\\fase5\\.venv\\lib\\site-packages\\matplotlib\\_mathtext.py:45: PyparsingDeprecationWarning: 'enablePackrat' deprecated - use 'enable_packrat'\n    ParserElement.enablePackrat()\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n18 passed, 31 warnings in 6.66s"
+    }
+  }
+}

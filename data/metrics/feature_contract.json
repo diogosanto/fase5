@@ -1,0 +1,48 @@
+{
+  "rows": 54686,
+  "columns": [
+    "bairro",
+    "cep",
+    "cep_prefixo",
+    "area_do_terreno_m2",
+    "valor_venal_de_referencia",
+    "ano_mes",
+    "ano",
+    "mes",
+    "data_de_transacao"
+  ],
+  "target_column": "valor_venal_de_referencia",
+  "required_columns": [
+    "bairro",
+    "cep_prefixo",
+    "area_do_terreno_m2",
+    "valor_venal_de_referencia",
+    "ano",
+    "mes"
+  ],
+  "missing_required_columns": [],
+  "forbidden_columns_present": [],
+  "unique_bairros": 1562,
+  "unique_periods": 79,
+  "nulls": {
+    "bairro": 0,
+    "cep": 0,
+    "cep_prefixo": 0,
+    "area_do_terreno_m2": 0,
+    "valor_venal_de_referencia": 0,
+    "ano_mes": 0,
+    "ano": 0,
+    "mes": 0,
+    "data_de_transacao": 0
+  },
+  "area_range": {
+    "min": 5.0,
+    "max": 49342.0
+  },
+  "target_range": {
+    "min": 902.0,
+    "median": 6578528.0,
+    "max": 149037790.0
+  },
+  "passed": true
+}

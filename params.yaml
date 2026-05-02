@@ -1,0 +1,29 @@
+data_quality:
+  min_rows: 100000
+  min_terrain_rows: 1000
+  max_required_null_rate:
+    data_de_transacao: 0.01
+    cep: 0.01
+    descricao_do_uso_iptu: 0.0
+    area_do_terreno_m2: 0.01
+    valor_venal_de_referencia: 0.01
+  max_non_positive_target_rows: 0
+
+feature_quality:
+  min_rows: 1000
+  min_unique_bairros: 20
+  min_unique_periods: 6
+  area_min: 1
+  area_max: 50000
+  forbidden_columns:
+    - valor_m2
+    - media_valor_cep
+
+model:
+  target_column: valor_venal_de_referencia
+  test_size: 0.2
+  random_state: 42
+  n_estimators: 200
+  split_strategy: temporal_holdout
+  min_group_size_for_segments: 30
+  backtest_windows: 3
