@@ -1,16 +1,20 @@
 def validate_input(data):
-    if data["area_do_terreno_m2"] <= 0:
-        raise ValueError("Área inválida")
+    bairro = str(data.get("bairro", "")).strip()
+    if len(bairro) < 2:
+        raise ValueError("Bairro invalido")
 
-    if data["valor_m2"] <= 0:
-        raise ValueError("Valor inválido")
+    if float(data["area_do_terreno_m2"]) <= 0:
+        raise ValueError("Area invalida")
 
-    if len(data["bairro"]) < 2:
-        raise ValueError("Bairro inválido")
+    if "cep_prefixo" in data and not str(data["cep_prefixo"]).strip():
+        raise ValueError("CEP prefixo invalido")
+
+    if "mes" in data and not 1 <= int(data["mes"]) <= 12:
+        raise ValueError("Mes invalido")
 
 
 def validate_output(value):
     if value < 0:
-        raise ValueError("Saída inválida do modelo")
+        raise ValueError("Saida invalida do modelo")
 
     return value

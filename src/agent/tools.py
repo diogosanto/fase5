@@ -1,4 +1,4 @@
-import json
+﻿import json
 import logging
 import re
 from dataclasses import dataclass
@@ -17,10 +17,10 @@ MODEL_CANDIDATE_DIRS = [
 ]
 REQUIRED_MODEL_FIELDS = [
     "bairro",
+    "cep_prefixo",
     "area_do_terreno_m2",
-    "valor_m2",
-    "ano_mes",
-    "media_valor_cep",
+    "ano",
+    "mes",
 ]
 
 
@@ -97,6 +97,10 @@ def _normalize_prediction_payload(payload: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(payload)
     if "area_do_terreno_m2" not in normalized and "area" in normalized:
         normalized["area_do_terreno_m2"] = normalized["area"]
+    if ("ano" not in normalized or "mes" not in normalized) and normalized.get("ano_mes") not in (None, ""):
+        ano_mes = _safe_int(normalized["ano_mes"])
+        normalized["ano"] = ano_mes // 100
+        normalized["mes"] = ano_mes % 100
     return normalized
 
 
@@ -106,34 +110,38 @@ def _retrieve_context(query: str):
     return retrieve_context(query=query)
 
 
+
 def _parse_prediction_payload_from_text(text: str) -> dict[str, Any]:
     bairro_match = re.search(
-        r"bairro\s+([a-zA-ZÀ-ÿ\s]+?)(?:,| com| area| área| valor_m2| ano_mes| media_valor_cep|$)",
+        r"bairro\s+([a-zA-ZÃ€-Ã¿\s]+?)(?:,| com| area| Ã¡rea| cep_prefixo| ano| mes| ano_mes|$)",
         text,
         flags=re.IGNORECASE,
     )
     area_match = re.search(r"area(?:_do_terreno_m2)?\s+(\d+(?:[.,]\d+)?)", text, flags=re.IGNORECASE)
-    valor_match = re.search(r"valor_m2\s+(\d+(?:[.,]\d+)?)", text, flags=re.IGNORECASE)
+    cep_match = re.search(r"cep(?:_prefixo)?\s+(\d{1,8})", text, flags=re.IGNORECASE)
+    ano_match = re.search(r"\bano\s+(\d{4})", text, flags=re.IGNORECASE)
+    mes_match = re.search(r"\bmes\s+(\d{1,2})", text, flags=re.IGNORECASE)
     ano_mes_match = re.search(r"ano_mes\s+(\d{6})", text, flags=re.IGNORECASE)
-    media_match = re.search(r"media_valor_cep\s+(\d+(?:[.,]\d+)?)", text, flags=re.IGNORECASE)
 
     payload: dict[str, Any] = {}
     if bairro_match:
         payload["bairro"] = bairro_match.group(1).strip(" ,.")
     if area_match:
         payload["area_do_terreno_m2"] = area_match.group(1).replace(",", ".")
-    if valor_match:
-        payload["valor_m2"] = valor_match.group(1).replace(",", ".")
+    if cep_match:
+        payload["cep_prefixo"] = cep_match.group(1)
+    if ano_match:
+        payload["ano"] = ano_match.group(1)
+    if mes_match:
+        payload["mes"] = mes_match.group(1)
     if ano_mes_match:
         payload["ano_mes"] = ano_mes_match.group(1)
-    if media_match:
-        payload["media_valor_cep"] = media_match.group(1).replace(",", ".")
     return payload
 
 
 def _parse_region_payload_from_text(text: str) -> dict[str, Any]:
     compare_match = re.search(
-        r"compare\s+([a-zA-ZÀ-ÿ\s]+?)\s+e\s+([a-zA-ZÀ-ÿ\s]+?)(?:\s+usando\s+([a-zA-Z0-9_]+)|[.?!,]|$)",
+        r"compare\s+([a-zA-ZÃ€-Ã¿\s]+?)\s+e\s+([a-zA-ZÃ€-Ã¿\s]+?)(?:\s+usando\s+([a-zA-Z0-9_]+)|[.?!,]|$)",
         text,
         flags=re.IGNORECASE,
     )
@@ -294,10 +302,10 @@ def price_estimator(action_input: Any) -> ToolResult:
     try:
         model_input = {
             "bairro": str(payload["bairro"]).strip().upper(),
+            "cep_prefixo": str(payload["cep_prefixo"]).strip()[:5],
             "area_do_terreno_m2": _safe_float(payload["area_do_terreno_m2"]),
-            "valor_m2": _safe_float(payload["valor_m2"]),
-            "ano_mes": _safe_int(payload["ano_mes"]),
-            "media_valor_cep": _safe_float(payload["media_valor_cep"]),
+            "ano": _safe_int(payload["ano"]),
+            "mes": _safe_int(payload["mes"]),
         }
         frame = pd.DataFrame([model_input])
         prediction = float(model.predict(frame)[0])
@@ -341,6 +349,14 @@ def _load_region_dataframe() -> pd.DataFrame:
 
     dataframe = pd.read_csv(PROCESSED_DATA_PATH, sep=";")
     dataframe["bairro"] = dataframe["bairro"].astype(str).str.strip().str.upper()
+    if (
+        "valor_m2_referencia" not in dataframe.columns
+        and "valor_venal_de_referencia" in dataframe.columns
+        and "area_do_terreno_m2" in dataframe.columns
+    ):
+        dataframe["valor_m2_referencia"] = (
+            dataframe["valor_venal_de_referencia"] / dataframe["area_do_terreno_m2"]
+        )
     return dataframe
 
 
@@ -354,7 +370,7 @@ def region_comparer(action_input: Any) -> ToolResult:
 
     region_a = payload.get("region_a")
     region_b = payload.get("region_b")
-    metric = payload.get("metric", "valor_m2")
+    metric = payload.get("metric", "valor_venal_de_referencia")
     logger.info("Tool region_comparer chamada region_a=%s region_b=%s metric=%s", region_a, region_b, metric)
 
     if not region_a or not region_b:
@@ -390,8 +406,10 @@ def region_comparer(action_input: Any) -> ToolResult:
 
     region_a_normalized = _normalize_region_name(region_a)
     region_b_normalized = _normalize_region_name(region_b)
+    if metric == "valor_m2" and metric not in dataframe.columns and "valor_m2_referencia" in dataframe.columns:
+        metric = "valor_m2_referencia"
     if metric not in dataframe.columns:
-        metric = "valor_m2"
+        metric = "valor_venal_de_referencia"
 
     stats = (
         dataframe[dataframe["bairro"].isin([region_a_normalized, region_b_normalized])]
@@ -466,8 +484,8 @@ def _region_metrics(dataframe: pd.DataFrame, region_name: str) -> dict[str, Any]
 
     metrics = {
         "count": int(len(region_df)),
-        "avg_price_m2": float(region_df["valor_m2"].mean()) if "valor_m2" in region_df.columns else None,
-        "median_price_m2": float(region_df["valor_m2"].median()) if "valor_m2" in region_df.columns else None,
+        "avg_price_m2": _mean_if_available(region_df, ["valor_m2", "valor_m2_referencia"]),
+        "median_price_m2": _median_if_available(region_df, ["valor_m2", "valor_m2_referencia"]),
     }
     if price_column:
         metrics.update(
@@ -479,6 +497,23 @@ def _region_metrics(dataframe: pd.DataFrame, region_name: str) -> dict[str, Any]
             }
         )
     return metrics
+
+
+def _first_available_column(dataframe: pd.DataFrame, candidates: list[str]) -> str | None:
+    for column in candidates:
+        if column in dataframe.columns:
+            return column
+    return None
+
+
+def _mean_if_available(dataframe: pd.DataFrame, candidates: list[str]) -> float | None:
+    column = _first_available_column(dataframe, candidates)
+    return float(dataframe[column].mean()) if column else None
+
+
+def _median_if_available(dataframe: pd.DataFrame, candidates: list[str]) -> float | None:
+    column = _first_available_column(dataframe, candidates)
+    return float(dataframe[column].median()) if column else None
 
 
 TOOLS = {
@@ -495,7 +530,7 @@ TOOL_REGISTRY = {
     ),
     "price_estimator": ToolSpec(
         name="price_estimator",
-        description="Executa inferencia no modelo existente usando bairro, area_do_terreno_m2, valor_m2, ano_mes e media_valor_cep.",
+        description="Executa inferencia no modelo existente usando bairro, cep_prefixo, area_do_terreno_m2, ano e mes.",
         function=price_estimator,
     ),
     "region_comparer": ToolSpec(

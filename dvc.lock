@@ -5,8 +5,8 @@ stages:
     deps:
     - path: src/data/0ingest.py
       hash: md5
-      md5: e5a661d6f5c5064ba2126f3e9ae5843b
-      size: 4041
+      md5: 803b663669a042c12611db9bcfbdf93a
+      size: 4163
     outs:
     - path: src/data/raw
       hash: md5
@@ -18,8 +18,8 @@ stages:
     deps:
     - path: src/data/1extract_all_itbi.py
       hash: md5
-      md5: 4310f4fe692ba30d184e6e914e98c83c
-      size: 4676
+      md5: 1455c28a988be4eb783b4684ec44f84d
+      size: 4839
     - path: src/data/raw
       hash: md5
       md5: 543d5e5147f1c29810eea71a6d5ecf9d.dir
@@ -39,16 +39,16 @@ stages:
       size: 210204826
     - path: params.yaml
       hash: md5
-      md5: 4ab32a7a87394d8b7b180c94d8a5709f
-      size: 628
+      md5: e5d32495135947b68f380457b87b29c5
+      size: 657
     - path: src/config.py
       hash: md5
-      md5: 7d60a8cd8766e5c3bdcf71c89f86d689
-      size: 2985
+      md5: 03558e55135bcabfabf98289b78c231d
+      size: 3091
     - path: src/data/2clean_all.py
       hash: md5
-      md5: f492a752cbc58e051c7f6e2747af3aa8
-      size: 9196
+      md5: bcf4ef9ed151f77712385bd27a5e4d5e
+      size: 9585
     params:
       params.yaml:
         data_quality:
@@ -79,16 +79,16 @@ stages:
       size: 203950609
     - path: params.yaml
       hash: md5
-      md5: 4ab32a7a87394d8b7b180c94d8a5709f
-      size: 628
+      md5: e5d32495135947b68f380457b87b29c5
+      size: 657
     - path: src/config.py
       hash: md5
-      md5: 7d60a8cd8766e5c3bdcf71c89f86d689
-      size: 2985
+      md5: 03558e55135bcabfabf98289b78c231d
+      size: 3091
     - path: src/features/build_features_minimal.py
       hash: md5
-      md5: fa0287f98eb8c9bb15c6a5240bfa6432
-      size: 6937
+      md5: e3b3721b37f3afa3723c358b73ea9ed8
+      size: 7219
     params:
       params.yaml:
         feature_quality:
@@ -118,24 +118,24 @@ stages:
       size: 3772516
     - path: params.yaml
       hash: md5
-      md5: 4ab32a7a87394d8b7b180c94d8a5709f
-      size: 628
+      md5: e5d32495135947b68f380457b87b29c5
+      size: 657
     - path: src/config.py
       hash: md5
-      md5: 7d60a8cd8766e5c3bdcf71c89f86d689
-      size: 2985
+      md5: 03558e55135bcabfabf98289b78c231d
+      size: 3091
     - path: src/training/evaluation.py
       hash: md5
-      md5: f3bf925db7fb2bdea8e0df8711ec0446
-      size: 2568
+      md5: 7675c0e3852a4fd74a4266db2649ba88
+      size: 2633
     - path: src/training/splits.py
       hash: md5
-      md5: ace76c1784d21dcf9d6951feb429dec0
-      size: 1872
+      md5: 0736703d4101b28afb9e137e650cd2c1
+      size: 1919
     - path: src/training/train_mlflow.py
       hash: md5
-      md5: 518b2034e91fc61f5664e8f211d724e0
-      size: 9813
+      md5: 17a64a8c9965298faebf4c4eeda75579
+      size: 10273
     params:
       params.yaml:
         model:
@@ -149,12 +149,12 @@ stages:
     outs:
     - path: data/metrics/train_metrics.json
       hash: md5
-      md5: ec7fa3e4fbd0f3b4f693f80a06c1aee2
-      size: 7254
+      md5: c66416202c875439fff6e4376daefb5d
+      size: 7253
     - path: models/dev
       hash: md5
-      md5: 5694d50415ee99e9678b2effcd1867b5.dir
-      size: 66785534
+      md5: 4c1f36319d3546d8b0d22be34c782fa0.dir
+      size: 66785540
       nfiles: 6
   validate:
     cmd: python src/training/validate_model.py --env dev
@@ -165,29 +165,29 @@ stages:
       size: 3772516
     - path: models/dev
       hash: md5
-      md5: 5694d50415ee99e9678b2effcd1867b5.dir
-      size: 66785534
+      md5: 4c1f36319d3546d8b0d22be34c782fa0.dir
+      size: 66785540
       nfiles: 6
     - path: params.yaml
       hash: md5
-      md5: 4ab32a7a87394d8b7b180c94d8a5709f
-      size: 628
+      md5: e5d32495135947b68f380457b87b29c5
+      size: 657
     - path: src/config.py
       hash: md5
-      md5: 7d60a8cd8766e5c3bdcf71c89f86d689
-      size: 2985
+      md5: 03558e55135bcabfabf98289b78c231d
+      size: 3091
     - path: src/training/evaluation.py
       hash: md5
-      md5: f3bf925db7fb2bdea8e0df8711ec0446
-      size: 2568
+      md5: 7675c0e3852a4fd74a4266db2649ba88
+      size: 2633
     - path: src/training/splits.py
       hash: md5
-      md5: ace76c1784d21dcf9d6951feb429dec0
-      size: 1872
+      md5: 0736703d4101b28afb9e137e650cd2c1
+      size: 1919
     - path: src/training/validate_model.py
       hash: md5
-      md5: f497e63fcd5262da53d44a8901514821
-      size: 4970
+      md5: bd70d3a40f3c33862c142aa8d2f2edbe
+      size: 5245
     params:
       params.yaml:
         model:
@@ -201,8 +201,8 @@ stages:
     outs:
     - path: data/metrics/validation_dev.json
       hash: md5
-      md5: 00f77382c65936f51f89073b21f3a713
-      size: 4961
+      md5: 0ca18e05f2df57a2ad037748f9df28fb
+      size: 5015
   eda:
     cmd: python src/features/modelagem/eda_valor_m2_bairro.py --input 
       data/processed/itbi_features_minimal.csv
@@ -234,78 +234,78 @@ stages:
     deps:
     - path: .env.example
       hash: md5
-      md5: 602f9a158c8d3ded6c7c5496b270a44f
-      size: 177
+      md5: c5bfb3ed35f48e1089faa56bc7a6dbef
+      size: 255
     - path: .gitignore
       hash: md5
-      md5: 5904e581e2ca8e12166a72b4927139c4
-      size: 492
+      md5: 3122786b3057c6ea6a6c2ed70f4c8ba5
+      size: 550
     - path: Dockerfile
       hash: md5
       md5: e5f9a765292ff6fb33cf82513d15a150
       size: 360
     - path: README.md
       hash: md5
-      md5: 91d43d6fc2fb384e59e99e8579faf6bb
-      size: 6112
+      md5: 3e110e10cd84fc46484aa96ce0567323
+      size: 7089
     - path: docker-compose.yml
       hash: md5
-      md5: 299379a01571a2d990c5829337f8fe77
-      size: 1728
+      md5: c8772072bc15f634b042fe503fd88001
+      size: 2036
     - path: params.yaml
       hash: md5
-      md5: 4ab32a7a87394d8b7b180c94d8a5709f
-      size: 628
+      md5: e5d32495135947b68f380457b87b29c5
+      size: 657
     - path: pyproject.toml
       hash: md5
-      md5: 8b3459ba8233f60d1806cf4101773311
-      size: 1206
+      md5: 46d8f524892dd3b31b206ebc32bf08c4
+      size: 1225
     - path: scripts/check_reproducibility.py
       hash: md5
-      md5: 56c1843734e9c2ac828276d5a7915f8d
-      size: 5387
+      md5: 8e60b882f2033979d2e68e4480d928e6
+      size: 5548
     - path: src/config.py
       hash: md5
-      md5: 7d60a8cd8766e5c3bdcf71c89f86d689
-      size: 2985
+      md5: 03558e55135bcabfabf98289b78c231d
+      size: 3091
     - path: src/data/0ingest.py
       hash: md5
-      md5: e5a661d6f5c5064ba2126f3e9ae5843b
-      size: 4041
+      md5: 803b663669a042c12611db9bcfbdf93a
+      size: 4163
     - path: src/data/1extract_all_itbi.py
       hash: md5
-      md5: 4310f4fe692ba30d184e6e914e98c83c
-      size: 4676
+      md5: 1455c28a988be4eb783b4684ec44f84d
+      size: 4839
     - path: src/data/2clean_all.py
       hash: md5
-      md5: f492a752cbc58e051c7f6e2747af3aa8
-      size: 9196
+      md5: bcf4ef9ed151f77712385bd27a5e4d5e
+      size: 9585
     - path: src/data/README.md
       hash: md5
-      md5: a6b2142abf194d741393dec9cc605e0a
-      size: 2272
+      md5: 7634d9aeeee592adbe23c4d1c2c09511
+      size: 2332
     - path: src/features/build_features_minimal.py
       hash: md5
-      md5: fa0287f98eb8c9bb15c6a5240bfa6432
-      size: 6937
+      md5: e3b3721b37f3afa3723c358b73ea9ed8
+      size: 7219
     - path: src/training/evaluation.py
       hash: md5
-      md5: f3bf925db7fb2bdea8e0df8711ec0446
-      size: 2568
+      md5: 7675c0e3852a4fd74a4266db2649ba88
+      size: 2633
     - path: src/training/splits.py
       hash: md5
-      md5: ace76c1784d21dcf9d6951feb429dec0
-      size: 1872
+      md5: 0736703d4101b28afb9e137e650cd2c1
+      size: 1919
     - path: src/training/train_mlflow.py
       hash: md5
-      md5: 518b2034e91fc61f5664e8f211d724e0
-      size: 9813
+      md5: 17a64a8c9965298faebf4c4eeda75579
+      size: 10273
     - path: src/training/validate_model.py
       hash: md5
-      md5: f497e63fcd5262da53d44a8901514821
-      size: 4970
+      md5: bd70d3a40f3c33862c142aa8d2f2edbe
+      size: 5245
     outs:
     - path: data/metrics/reproducibility_report.json
       hash: md5
-      md5: 24d1706ac770490410d5edfd10ba6596
-      size: 2812
+      md5: a32017975a50f6e1b1755916d586462c
+      size: 2815

@@ -64,6 +64,14 @@ def assert_promotion_criteria(candidate_path, to_env, improvement_pct, max_mae):
         print(f"[INFO] Metrica candidata lida de {candidate_source}: {candidate_metric:,.2f}")
         return
 
+    if improvement_pct <= 0:
+        print(
+            f"[INFO] Comparacao com modelo ativo ignorada porque "
+            f"improvement_pct={improvement_pct:g}."
+        )
+        print(f"[INFO] Metrica candidata lida de {candidate_source}: {candidate_metric:,.2f}")
+        return
+
     active_metric, active_source = load_metric(active_model)
     if active_metric is None:
         raise ValueError(

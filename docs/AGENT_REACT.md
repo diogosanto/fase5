@@ -39,13 +39,13 @@ Chama a camada existente de previsao de preco, sem alterar o modelo de ML.
 Use quando a pergunta pedir estimativa de preco e houver dados suficientes para o modelo:
 
 ```text
-bairro, area_do_terreno_m2, valor_m2, ano_mes, media_valor_cep
+bairro, cep_prefixo, area_do_terreno_m2, ano, mes
 ```
 
 Exemplo:
 
 ```text
-Quanto vale um apartamento com bairro Moema, area 80, valor_m2 1500, ano_mes 202401 e media_valor_cep 2000?
+Quanto vale um terreno com bairro Moema, cep_prefixo 04001, area 80, ano 2024 e mes 1?
 ```
 
 Tool esperada:

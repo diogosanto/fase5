@@ -4,7 +4,7 @@ import os
 import re
 import uuid
 from time import perf_counter
-from src.security.guardrails import validate_input, validate_output
+
 import mlflow.pyfunc
 import pandas as pd
 from fastapi import FastAPI
@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.agent.orchestrator import AgentOrchestrator
+from src.security.guardrails import validate_input, validate_output
 
 
 logging.basicConfig(
@@ -70,29 +71,63 @@ def health():
     }
 
 
-@app.post("/predict")
-def predict(
-    bairro: str,
-    area_do_terreno_m2: float,
-    valor_m2: float,
-    ano_mes: int,
-    media_valor_cep: float,
-):
-    df = pd.DataFrame(
-        [
-            {
-                "bairro": bairro,
-                "area_do_terreno_m2": area_do_terreno_m2,
-                "valor_m2": valor_m2,
-                "ano_mes": ano_mes,
-                "media_valor_cep": media_valor_cep,
+class PredictRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "bairro": "CENTRO",
+                "cep_prefixo": "01001",
+                "area_do_terreno_m2": 300,
+                "ano": 2025,
+                "mes": 3,
             }
-        ]
+        }
     )
+
+    bairro: str = Field(..., min_length=1, max_length=120)
+    cep_prefixo: str = Field(..., min_length=1, max_length=8)
+    area_do_terreno_m2: float = Field(..., gt=0)
+    ano: int | None = Field(default=None, ge=1900, le=2999)
+    mes: int | None = Field(default=None, ge=1, le=12)
+    ano_mes: int | None = Field(default=None, ge=190001, le=299912)
+
+    @field_validator("bairro", "cep_prefixo")
+    @classmethod
+    def sanitize_text_fields(cls, value: str) -> str:
+        sanitized = _sanitize_text(value)
+        if not sanitized:
+            raise ValueError("campo textual nao pode ser vazio")
+        return sanitized
+
+    def to_model_frame(self) -> pd.DataFrame:
+        ano = self.ano
+        mes = self.mes
+        if (ano is None or mes is None) and self.ano_mes is not None:
+            ano = self.ano_mes // 100
+            mes = self.ano_mes % 100
+
+        if ano is None or mes is None:
+            raise ValueError("Informe `ano` e `mes`, ou informe `ano_mes`.")
+
+        payload = {
+            "bairro": self.bairro.strip().upper(),
+            "cep_prefixo": str(self.cep_prefixo).strip()[:5],
+            "area_do_terreno_m2": float(self.area_do_terreno_m2),
+            "ano": int(ano),
+            "mes": int(mes),
+        }
+        validate_input(payload)
+        return pd.DataFrame([payload])
+
+
+@app.post("/predict")
+def predict(request: PredictRequest):
+    df = request.to_model_frame()
     pred = model.predict(df)[0]
+    pred = validate_output(float(pred))
 
     return {
-        "valor_estimado": float(pred),
+        "valor_estimado": pred,
         "unidade": "R$",
         "versao_modelo": MODEL_VERSION,
     }
@@ -108,9 +143,8 @@ class ChatPropertyData(BaseModel):
             "example": {
                 "area": 60,
                 "bairro": "MOOCA - SP",
-                "valor_m2": 1500,
+                "cep_prefixo": "03110",
                 "ano_mes": 202401,
-                "media_valor_cep": 2000,
             }
         }
     )
@@ -119,10 +153,11 @@ class ChatPropertyData(BaseModel):
     area_do_terreno_m2: float | None = Field(default=None, ge=0)
     quartos: int | None = Field(default=None, ge=0, le=50)
     bairro: str | None = Field(default=None, min_length=1, max_length=120)
+    cep_prefixo: str | None = Field(default=None, min_length=1, max_length=8)
     preco: float | None = Field(default=None, ge=0)
-    valor_m2: float | None = Field(default=None, ge=0)
+    ano: int | None = Field(default=None, ge=1900, le=2999)
+    mes: int | None = Field(default=None, ge=1, le=12)
     ano_mes: int | None = Field(default=None, ge=190001, le=299912)
-    media_valor_cep: float | None = Field(default=None, ge=0)
 
     @field_validator("bairro")
     @classmethod
@@ -143,9 +178,8 @@ class ChatRequest(BaseModel):
                 "property_data": {
                     "area": 60,
                     "bairro": "MOOCA - SP",
-                    "valor_m2": 1500,
+                    "cep_prefixo": "03110",
                     "ano_mes": 202401,
-                    "media_valor_cep": 2000,
                 },
             }
         }
@@ -247,7 +281,7 @@ def _looks_like_llm_provider_error(error_message: str) -> bool:
         "Executa o Agent ReAct com RAG e tools. "
         "Para perguntas conceituais, envie apenas `message`. "
         "Para estimar preco com o modelo de predicao, envie `property_data` com "
-        "`bairro`, `area` ou `area_do_terreno_m2`, `valor_m2`, `ano_mes` e `media_valor_cep`."
+        "`bairro`, `cep_prefixo`, `area` ou `area_do_terreno_m2`, e `ano`/`mes` ou `ano_mes`."
     ),
     openapi_extra={
         "requestBody": {
@@ -262,9 +296,8 @@ def _looks_like_llm_provider_error(error_message: str) -> bool:
                                 "property_data": {
                                     "area": 60,
                                     "bairro": "MOOCA - SP",
-                                    "valor_m2": 1500,
+                                    "cep_prefixo": "03110",
                                     "ano_mes": 202401,
-                                    "media_valor_cep": 2000,
                                 },
                             },
                         },

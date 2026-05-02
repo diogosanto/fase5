@@ -1,7 +1,7 @@
 {
-  "env": "dev",
+  "env": "test",
   "version": "2026.05.02.1934",
-  "model_path": "C:\\Users\\diesa\\Documents\\Pos - Machine Learning Engineering\\Fase 5\\precificador-imobiliario\\models\\dev\\model_2026.05.02.1934",
+  "model_path": "C:\\Users\\diesa\\Documents\\Pos - Machine Learning Engineering\\Fase 5\\precificador-imobiliario\\models\\test\\model_2026.05.02.1934",
   "split_strategy": "temporal_holdout",
   "holdout_period_start": "2025-06",
   "holdout_period_end": "2026-01",
@@ -90,7 +90,7 @@
         "n": 2780,
         "mae": 632298.9615693727,
         "median_absolute_error": 130770.1000000001,
-        "bias": -42601.109025865415
+        "bias": -42601.10902586545
       },
       {
         "target_band": "baixo",

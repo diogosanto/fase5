@@ -2,10 +2,10 @@ groups:
   - name: api_alerts
     rules:
       - alert: ApiDown
-        expr: up{job="api_precificador"} == 0
+        expr: up{job="precificador-api"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "API inacessível"
-          description: "O target api_precificador está com up == 0."
+          summary: "API inacessivel"
+          description: "O target precificador-api esta com up == 0."

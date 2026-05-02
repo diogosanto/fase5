@@ -66,6 +66,19 @@ class PromoteModelTests(unittest.TestCase):
                 max_mae=None,
             )
 
+    def test_skips_active_model_metric_when_improvement_pct_is_zero(self) -> None:
+        candidate = self._model_dir("candidate", mae=94_000)
+        active = self.work_dir / "active_without_metrics"
+        active.mkdir(parents=True, exist_ok=True)
+
+        with patch.object(promote_model, "get_active_model", return_value=active):
+            promote_model.assert_promotion_criteria(
+                candidate_path=candidate,
+                to_env="test",
+                improvement_pct=0.0,
+                max_mae=None,
+            )
+
     def _model_dir(self, name: str, mae: float) -> Path:
         model_dir = self.work_dir / name
         model_dir.mkdir(parents=True, exist_ok=True)

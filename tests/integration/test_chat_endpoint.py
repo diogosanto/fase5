@@ -171,15 +171,17 @@ class AgentOrchestratorTests(unittest.TestCase):
                 property_data={
                     "area": 60,
                     "bairro": "MOOCA - SP",
-                    "valor_m2": 1500,
+                    "cep_prefixo": "03110",
                     "ano_mes": 202401,
-                    "media_valor_cep": 2000,
                 },
             )
 
         self.assertEqual(result["tools_used"], ["price_estimator"])
         self.assertIn("Estimativa gerada pelo modelo de predicao", result["answer"])
         self.assertEqual(result["steps"][0]["action_input"]["area_do_terreno_m2"], 60)
+        self.assertEqual(result["steps"][0]["action_input"]["cep_prefixo"], "03110")
+        self.assertEqual(result["steps"][0]["action_input"]["ano"], 2024)
+        self.assertEqual(result["steps"][0]["action_input"]["mes"], 1)
 
 
 if __name__ == "__main__":

@@ -208,7 +208,6 @@ class ReActAgent:
             "preço desse",
             "valor estimado",
             "precificar",
-            "valor_m2",
         ]
         if any(keyword in lowered for keyword in price_keywords):
             return {
@@ -322,7 +321,7 @@ class ReActAgent:
             if "region_a" in payload and "region_b" in payload:
                 region_a = payload["region_a"]
                 region_b = payload["region_b"]
-                metric = payload.get("metric", "valor_m2")
+                metric = payload.get("metric", "valor_venal_de_referencia")
                 return (
                     f"Comparacao por {metric}: {region_a['bairro']} tem media "
                     f"{region_a['media']:.2f} com {region_a['amostra']} registros; "
@@ -378,7 +377,6 @@ class ReActAgent:
                 "qual o preco",
                 "qual o preço",
                 "preco para bairro",
-                "valor_m2",
             ]
         ):
             return {

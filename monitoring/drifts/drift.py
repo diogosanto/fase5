@@ -45,12 +45,12 @@ def run():
         DatasetDriftMetric(drift_share=0.3),
 
         # 🔥 Drift por coluna crítica
-        ColumnDriftMetric(column_name="valor_m2"),
         ColumnDriftMetric(column_name="area_do_terreno_m2"),
-        ColumnDriftMetric(column_name="media_valor_cep"),
+        ColumnDriftMetric(column_name="ano"),
+        ColumnDriftMetric(column_name="mes"),
 
         # 🔥 Estatísticas detalhadas
-        ColumnSummaryMetric(column_name="valor_m2"),
+        ColumnSummaryMetric(column_name="area_do_terreno_m2"),
         ColumnSummaryMetric(column_name="valor_venal_de_referencia"),
     ])
 

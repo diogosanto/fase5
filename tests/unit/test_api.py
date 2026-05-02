@@ -1,22 +1,28 @@
-from fastapi.testclient import TestClient
-from api.main import app
+import api.main as api_main
+from api.main import PredictRequest, health, predict
 
-client = TestClient(app)
+
+class FakeModel:
+    def predict(self, dataframe):
+        assert list(dataframe.columns) == ["bairro", "cep_prefixo", "area_do_terreno_m2", "ano", "mes"]
+        return [123456.0]
 
 
 def test_health():
-    response = client.get("/health")
-    assert response.status_code == 200
+    response = health()
+    assert response["status"] == "ok"
 
 
 def test_predict():
-    response = client.post("/predict", params={
-        "bairro": "CENTRO",
-        "area_do_terreno_m2": 100,
-        "valor_m2": 2000,
-        "ano_mes": 202401,
-        "media_valor_cep": 300000
-    })
+    api_main.model = FakeModel()
+    response = predict(
+        PredictRequest(
+            bairro="CENTRO",
+            cep_prefixo="01001",
+            area_do_terreno_m2=100,
+            ano=2024,
+            mes=1,
+        )
+    )
 
-    assert response.status_code == 200
-    assert "valor_estimado" in response.json()
+    assert "valor_estimado" in response

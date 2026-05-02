@@ -69,14 +69,14 @@ def fake_region_comparer(action_input):
         tool_name="region_comparer",
         content=json.dumps(
             {
-                "metric": "valor_m2",
+                "metric": "valor_venal_de_referencia",
                 "region_a": {"bairro": "MOEMA", "media": 12000.0, "amostra": 10},
                 "region_b": {"bairro": "PINHEIROS", "media": 14000.0, "amostra": 12},
                 "higher_region": "PINHEIROS",
                 "absolute_difference": 2000.0,
             }
         ),
-        metadata={"metric": "valor_m2"},
+        metadata={"metric": "valor_venal_de_referencia"},
     )
 
 
@@ -109,7 +109,7 @@ class ReActAgentTests(unittest.TestCase):
         agent = ReActAgent(max_steps=3, llm=NeverCalledLLM())
 
         with patch("src.agent.react_agent.TOOLS", {"price_estimator": fake_price_estimator}):
-            response = agent.run("Quanto vale um apartamento com bairro Moema, area 80, valor_m2 1500, ano_mes 202401 e media_valor_cep 2000?")
+            response = agent.run("Quanto vale um apartamento com bairro Moema, area 80, cep_prefixo 04001 e ano_mes 202401?")
 
         self.assertEqual(response.tools_used, ["price_estimator"])
         self.assertIn("Estimativa gerada pelo modelo de predicao", response.answer)

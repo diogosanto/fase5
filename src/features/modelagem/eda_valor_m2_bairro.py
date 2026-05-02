@@ -1,5 +1,6 @@
 import argparse
 import hashlib
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -216,6 +217,7 @@ def _save_horizontal_bar_image(
     xlabel: str,
     path: Path,
 ) -> None:
+    _ensure_matplotlib_config_dir()
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(12, max(6, len(data) * 0.35)))
@@ -230,6 +232,7 @@ def _save_horizontal_bar_image(
 
 
 def _save_frequency_image(data: pd.DataFrame, title: str, xlabel: str, path: Path) -> None:
+    _ensure_matplotlib_config_dir()
     import matplotlib.pyplot as plt
 
     labels = data.apply(lambda row: f"{row['faixa_inicio']:.0f}-{row['faixa_fim']:.0f}", axis=1)
@@ -243,6 +246,12 @@ def _save_frequency_image(data: pd.DataFrame, title: str, xlabel: str, path: Pat
     fig.tight_layout()
     fig.savefig(path, dpi=160, bbox_inches="tight")
     plt.close(fig)
+
+
+def _ensure_matplotlib_config_dir() -> None:
+    config_dir = PROJECT_ROOT / ".test_artifacts" / "matplotlib"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("MPLCONFIGDIR", str(config_dir))
 
 
 def _write_metric_workbook(

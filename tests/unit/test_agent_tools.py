@@ -4,7 +4,7 @@ Testes unitarios das tools usadas pelo Agent ReAct.
 Objetivo para avaliacao/banca:
 - validar que as 3 tools obrigatorias estao registradas;
 - garantir que `rag_search` retorna contexto, fontes e status;
-- garantir que `price_estimator` valida os campos exigidos pelo modelo;
+- garantir que `price_estimator` valida os campos exigidos pelo modelo sem vazamento;
 - garantir que `region_comparer` calcula metricas com dados processados e trata bairros inexistentes.
 
 Os testes usam mocks/fakes para evitar carregar MLflow, chamar LLM ou depender de arquivos grandes.
@@ -81,9 +81,9 @@ class AgentToolsTests(unittest.TestCase):
         self.assertEqual(payload["tool"], "price_estimator")
         self.assertEqual(payload["status"], "error")
         self.assertEqual(payload["error"], "missing_fields")
-        self.assertIn("valor_m2", payload["missing_fields"])
-        self.assertIn("ano_mes", payload["missing_fields"])
-        self.assertIn("media_valor_cep", payload["missing_fields"])
+        self.assertIn("cep_prefixo", payload["missing_fields"])
+        self.assertIn("ano", payload["missing_fields"])
+        self.assertIn("mes", payload["missing_fields"])
 
     def test_price_estimator_calls_existing_model_adapter(self) -> None:
         """Valida o contrato de entrada/saida da tool de preco usando um modelo fake."""
@@ -93,9 +93,8 @@ class AgentToolsTests(unittest.TestCase):
                 {
                     "bairro": "Moema",
                     "area": 80,
-                    "valor_m2": 1500,
+                    "cep_prefixo": "04001",
                     "ano_mes": 202401,
-                    "media_valor_cep": 2000,
                 }
             )
 
@@ -104,6 +103,9 @@ class AgentToolsTests(unittest.TestCase):
         self.assertEqual(payload["estimated_price"], 950000.0)
         self.assertEqual(payload["currency"], "BRL")
         self.assertEqual(payload["input"]["area_do_terreno_m2"], 80.0)
+        self.assertEqual(payload["input"]["cep_prefixo"], "04001")
+        self.assertEqual(payload["input"]["ano"], 2024)
+        self.assertEqual(payload["input"]["mes"], 1)
         self.assertEqual(payload["versao_modelo"], "model_test")
 
     def test_region_comparer_returns_metrics_for_existing_regions(self) -> None:

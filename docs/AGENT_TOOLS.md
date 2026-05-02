@@ -51,13 +51,13 @@ Campos obrigatorios alinhados ao endpoint `/predict`:
 
 ```text
 bairro
+cep_prefixo
 area_do_terreno_m2
-valor_m2
-ano_mes
-media_valor_cep
+ano
+mes
 ```
 
-A tool tambem aceita `area` como alias para `area_do_terreno_m2`.
+A tool tambem aceita `area` como alias para `area_do_terreno_m2` e `ano_mes` como alias para `ano` e `mes`.
 
 Saida principal:
 
@@ -66,10 +66,10 @@ Saida principal:
   "tool": "price_estimator",
   "input": {
     "bairro": "MOEMA",
+    "cep_prefixo": "04001",
     "area_do_terreno_m2": 80,
-    "valor_m2": 1500,
-    "ano_mes": 202401,
-    "media_valor_cep": 2000
+    "ano": 2024,
+    "mes": 1
   },
   "estimated_price": 950000,
   "currency": "BRL",
@@ -89,7 +89,7 @@ Entrada:
 {
   "region_a": "Moema",
   "region_b": "Pinheiros",
-  "metric": "valor_m2"
+  "metric": "valor_venal_de_referencia"
 }
 ```
 

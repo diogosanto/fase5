@@ -1,38 +1,77 @@
-# Ambiente virtual
+# Virtual environments and local secrets
 .venv/
 venv/
-.env/
 env/
+.env/
 .env
-.env.bak/
+.env.*
+!.env.example
 
-# Dados brutos e intermediários
+# Python caches and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Node/frontend dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Data artifacts managed outside Git
 data/raw/
 data/interim/
 data/processed/
 data/normalized/
 data/rag/vectorstore/
-src/data/eda/features_modelagem/
-
-# Dados de ambientes
 data/dev/
 data/test/
 data/prod/
+src/data/raw/
+src/data/eda/features_modelagem/
 
-# Artefatos grandes
-mlruns/
-src/training/mlruns/
+# Keep small pipeline metrics versioned
+!data/metrics/
+!data/metrics/*.json
+
+# Model and experiment artifacts
 models/dev/
 models/test/
 models/prod/
+mlruns/
+src/training/mlruns/
 
-# Arquivos temporários
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# DVC local cache and runtime files
+.dvc/cache/
+.dvc/tmp/
+
+# Local temporary outputs
 .test_artifacts/
 tmp*/
+tmp/
+cache/
 
-# Apenas metadados para python
-*.egg-info/
+# Notebook and editor local state
+.ipynb_checkpoints/
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local app config
+/config.local
+/tmp
+/cache

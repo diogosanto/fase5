@@ -103,7 +103,6 @@ class AgentOrchestrator:
             "preco desse",
             "preço desse",
             "preco para bairro",
-            "valor_m2",
             "compare",
             "comparar",
         ]
@@ -163,14 +162,18 @@ class AgentOrchestrator:
         payload = dict(property_data)
         if "area_do_terreno_m2" not in payload and "area" in payload:
             payload["area_do_terreno_m2"] = payload["area"]
+        if ("ano" not in payload or "mes" not in payload) and payload.get("ano_mes") not in (None, ""):
+            ano_mes = int(float(str(payload["ano_mes"]).replace(",", ".")))
+            payload["ano"] = ano_mes // 100
+            payload["mes"] = ano_mes % 100
         return {
             key: payload.get(key)
             for key in [
                 "bairro",
+                "cep_prefixo",
                 "area_do_terreno_m2",
-                "valor_m2",
-                "ano_mes",
-                "media_valor_cep",
+                "ano",
+                "mes",
             ]
             if payload.get(key) not in (None, "")
         }
@@ -181,7 +184,7 @@ class AgentOrchestrator:
             return (
                 "Acionei o modelo de predicao, mas ainda nao e possivel estimar o preco porque faltam "
                 f"campos obrigatorios: {', '.join(missing_fields)}. "
-                "Envie esses campos em property_data para obter a estimativa pelo modelo."
+                "Envie bairro, cep_prefixo, area_do_terreno_m2 e ano/mes em property_data para obter a estimativa pelo modelo."
             )
 
         try:
@@ -217,7 +220,7 @@ class AgentOrchestrator:
 
         return {
             "agent_type": "react",
-            "max_steps": getattr(self.agent, "max_steps", self._default_max_steps()),
+            "max_steps": getattr(getattr(self, "agent", None), "max_steps", self._default_max_steps()),
             "steps_executed": steps_executed,
             "provider": provider,
             "model": model,
