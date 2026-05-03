@@ -11,8 +11,7 @@ class TemporalHoldoutTests(unittest.TestCase):
             {
                 "ano": [2023, 2023, 2024, 2024, 2025],
                 "mes": [1, 2, 1, 2, 1],
-                "bairro": ["A", "A", "A", "A", "A"],
-                "cep_prefixo": ["1", "1", "1", "1", "1"],
+                "cep": ["01001000", "01001000", "01001000", "01001000", "01001000"],
                 "area_do_terreno_m2": [10, 20, 30, 40, 50],
                 "valor_venal_de_referencia": [100, 200, 300, 400, 500],
             }
@@ -30,8 +29,7 @@ class TemporalHoldoutTests(unittest.TestCase):
             {
                 "ano": [2023, 2023, 2024, 2024, 2025, 2025],
                 "mes": [1, 2, 1, 2, 1, 2],
-                "bairro": ["A"] * 6,
-                "cep_prefixo": ["1"] * 6,
+                "cep": ["01001000"] * 6,
                 "area_do_terreno_m2": [10, 20, 30, 40, 50, 60],
                 "valor_venal_de_referencia": [100, 200, 300, 400, 500, 600],
             }

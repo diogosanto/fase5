@@ -143,8 +143,7 @@ class PredictRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "bairro": "CENTRO",
-                "cep_prefixo": "01001",
+                "cep": "01001000",
                 "area_do_terreno_m2": 300,
                 "ano": 2025,
                 "mes": 3,
@@ -152,19 +151,18 @@ class PredictRequest(BaseModel):
         }
     )
 
-    bairro: str = Field(..., min_length=1, max_length=120)
-    cep_prefixo: str = Field(..., min_length=1, max_length=8)
+    cep: str = Field(..., min_length=1, max_length=20)
     area_do_terreno_m2: float = Field(..., gt=0)
     ano: int | None = Field(default=None, ge=1900, le=2999)
     mes: int | None = Field(default=None, ge=1, le=12)
     ano_mes: int | None = Field(default=None, ge=190001, le=299912)
 
-    @field_validator("bairro", "cep_prefixo")
+    @field_validator("cep")
     @classmethod
-    def sanitize_text_fields(cls, value: str) -> str:
-        sanitized = _sanitize_text(value)
+    def sanitize_cep(cls, value: str) -> str:
+        sanitized = _normalize_cep(value)
         if not sanitized:
-            raise ValueError("campo textual nao pode ser vazio")
+            raise ValueError("cep deve conter digitos")
         return sanitized
 
     @model_validator(mode="after")
@@ -183,8 +181,7 @@ class PredictRequest(BaseModel):
             mes = self.ano_mes % 100
 
         payload = {
-            "bairro": self.bairro.strip().upper(),
-            "cep_prefixo": str(self.cep_prefixo).strip()[:5],
+            "cep": self.cep,
             "area_do_terreno_m2": float(self.area_do_terreno_m2),
             "ano": int(ano),
             "mes": int(mes),
@@ -222,8 +219,7 @@ class ChatPropertyData(BaseModel):
         json_schema_extra={
             "example": {
                 "area": 60,
-                "bairro": "MOOCA - SP",
-                "cep_prefixo": "03110",
+                "cep": "03110000",
                 "ano_mes": 202401,
             }
         }
@@ -232,21 +228,21 @@ class ChatPropertyData(BaseModel):
     area: float | None = Field(default=None, ge=0)
     area_do_terreno_m2: float | None = Field(default=None, ge=0)
     quartos: int | None = Field(default=None, ge=0, le=50)
-    bairro: str | None = Field(default=None, min_length=1, max_length=120)
-    cep_prefixo: str | None = Field(default=None, min_length=1, max_length=8)
+    cep: str | None = Field(default=None, min_length=1, max_length=20)
+    cep_prefixo: str | None = Field(default=None, min_length=1, max_length=20)
     preco: float | None = Field(default=None, ge=0)
     ano: int | None = Field(default=None, ge=1900, le=2999)
     mes: int | None = Field(default=None, ge=1, le=12)
     ano_mes: int | None = Field(default=None, ge=190001, le=299912)
 
-    @field_validator("bairro")
+    @field_validator("cep", "cep_prefixo")
     @classmethod
-    def sanitize_bairro(cls, value: str | None) -> str | None:
+    def sanitize_cep_fields(cls, value: str | None) -> str | None:
         if value is None:
             return value
-        sanitized = _sanitize_text(value)
+        sanitized = _normalize_cep(value)
         if not sanitized:
-            raise ValueError("bairro nao pode ser vazio")
+            raise ValueError("cep deve conter digitos")
         return sanitized
 
 
@@ -257,8 +253,7 @@ class ChatRequest(BaseModel):
                 "message": "Qual o preco desse apartamento?",
                 "property_data": {
                     "area": 60,
-                    "bairro": "MOOCA - SP",
-                    "cep_prefixo": "03110",
+                    "cep": "03110000",
                     "ano_mes": 202401,
                 },
             }
@@ -297,6 +292,10 @@ class ChatResponse(BaseModel):
 def _sanitize_text(value: str) -> str:
     cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", value)
     return cleaned.strip()
+
+
+def _normalize_cep(value: str) -> str:
+    return "".join(char for char in _sanitize_text(str(value)) if char.isdigit())
 
 
 def _truncate_for_log(value: str, max_length: int = 160) -> str:
@@ -377,7 +376,7 @@ def _observe_chat_metrics(
         "Executa o Agent ReAct com RAG e tools. "
         "Para perguntas conceituais, envie apenas `message`. "
         "Para estimar preco com o modelo de predicao, envie `property_data` com "
-        "`bairro`, `cep_prefixo`, `area` ou `area_do_terreno_m2`, e `ano`/`mes` ou `ano_mes`."
+        "`cep`, `area` ou `area_do_terreno_m2`, e `ano`/`mes` ou `ano_mes`."
     ),
     openapi_extra={
         "requestBody": {
@@ -391,8 +390,7 @@ def _observe_chat_metrics(
                                 "message": "Qual o preco desse apartamento?",
                                 "property_data": {
                                     "area": 60,
-                                    "bairro": "MOOCA - SP",
-                                    "cep_prefixo": "03110",
+                                    "cep": "03110000",
                                     "ano_mes": 202401,
                                 },
                             },

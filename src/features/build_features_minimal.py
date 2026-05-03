@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -21,24 +20,22 @@ FEATURE_PARAMS = PARAMS.get("feature_quality", {})
 MODEL_PARAMS = PARAMS.get("model", {})
 TARGET = str(MODEL_PARAMS.get("target_column", "valor_venal_de_referencia"))
 MIN_ROWS = int(FEATURE_PARAMS.get("min_rows", 1))
-MIN_UNIQUE_BAIRROS = int(FEATURE_PARAMS.get("min_unique_bairros", 1))
+MIN_UNIQUE_CEPS = int(FEATURE_PARAMS.get("min_unique_ceps", 1))
 MIN_UNIQUE_PERIODS = int(FEATURE_PARAMS.get("min_unique_periods", 1))
 AREA_MIN = float(FEATURE_PARAMS.get("area_min", 1))
 AREA_MAX = float(FEATURE_PARAMS.get("area_max", 50000))
 FORBIDDEN_COLUMNS = set(FEATURE_PARAMS.get("forbidden_columns", []))
 
 
-def normalize_text(text):
-    if pd.isna(text):
+def normalize_cep(value):
+    if pd.isna(value):
         return None
-    text = str(text)
-    text = unicodedata.normalize("NFKD", text)
-    text = text.encode("ascii", "ignore").decode("utf-8")
-    return text.upper().strip()
+    digits = "".join(char for char in str(value) if char.isdigit())
+    return digits or None
 
 
 def build_feature_contract(df):
-    required_feature_cols = ["bairro", "cep_prefixo", "area_do_terreno_m2", TARGET, "ano", "mes"]
+    required_feature_cols = ["cep", "area_do_terreno_m2", TARGET, "ano", "mes"]
     forbidden_present = sorted(FORBIDDEN_COLUMNS.intersection(df.columns))
     period_count = int(df[["ano", "mes"]].drop_duplicates().shape[0]) if {"ano", "mes"}.issubset(df.columns) else 0
     profile = {
@@ -48,7 +45,7 @@ def build_feature_contract(df):
         "required_columns": required_feature_cols,
         "missing_required_columns": [col for col in required_feature_cols if col not in df.columns],
         "forbidden_columns_present": forbidden_present,
-        "unique_bairros": int(df["bairro"].nunique()) if "bairro" in df.columns else 0,
+        "unique_ceps": int(df["cep"].nunique()) if "cep" in df.columns else 0,
         "unique_periods": period_count,
         "nulls": {col: int(value) for col, value in df.isna().sum().items()},
         "area_range": {
@@ -69,9 +66,9 @@ def _feature_contract_failures(profile):
     failures = []
     if profile["rows"] < MIN_ROWS:
         failures.append(f"rows={profile['rows']} abaixo do minimo {MIN_ROWS}")
-    if profile["unique_bairros"] < MIN_UNIQUE_BAIRROS:
+    if profile["unique_ceps"] < MIN_UNIQUE_CEPS:
         failures.append(
-            f"unique_bairros={profile['unique_bairros']} abaixo do minimo {MIN_UNIQUE_BAIRROS}"
+            f"unique_ceps={profile['unique_ceps']} abaixo do minimo {MIN_UNIQUE_CEPS}"
         )
     if profile["unique_periods"] < MIN_UNIQUE_PERIODS:
         failures.append(
@@ -105,7 +102,6 @@ def build_features():
 
     required_cols = [
         "descricao_do_uso_iptu",
-        "bairro",
         "cep",
         "area_do_terreno_m2",
         TARGET,
@@ -117,9 +113,7 @@ def build_features():
 
     df = df[df["descricao_do_uso_iptu"] == "TERRENO"].copy()
 
-    df["bairro"] = df["bairro"].apply(normalize_text)
-    df["cep"] = df["cep"].astype(str).str.extract(r"(\d+)", expand=False)
-    df["cep_prefixo"] = df["cep"].str.slice(0, 5)
+    df["cep"] = df["cep"].apply(normalize_cep)
 
     df["data_de_transacao"] = pd.to_datetime(df["data_de_transacao"], errors="coerce")
     df["ano"] = df["data_de_transacao"].dt.year
@@ -133,18 +127,14 @@ def build_features():
     ].copy()
 
     cols = [
-        "bairro",
         "cep",
-        "cep_prefixo",
         "area_do_terreno_m2",
         TARGET,
-        "ano_mes",
         "ano",
         "mes",
-        "data_de_transacao",
     ]
     df_final = df[cols].copy()
-    required_feature_cols = ["bairro", "cep_prefixo", "area_do_terreno_m2", TARGET, "ano", "mes"]
+    required_feature_cols = ["cep", "area_do_terreno_m2", TARGET, "ano", "mes"]
     rows_before_required_filter = len(df_final)
     df_final = df_final.dropna(subset=required_feature_cols).copy()
     dropped_required_rows = rows_before_required_filter - len(df_final)
@@ -169,6 +159,7 @@ def build_features():
     print(f"Linhas: {len(df_final)}")
     print(f"Linhas descartadas por nulos obrigatorios: {dropped_required_rows}")
     print(f"Target configurado: {TARGET}")
+    print("Features do modelo: cep, area_do_terreno_m2, ano, mes")
     print("Colunas removidas por vazamento: valor_m2, media_valor_cep")
 
 

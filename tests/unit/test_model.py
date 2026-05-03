@@ -8,16 +8,14 @@ def test_model_pipeline_uses_current_feature_contract():
     frame = pd.DataFrame(
         [
             {
-                "bairro": "CENTRO",
-                "cep_prefixo": "01001",
+                "cep": "01001000",
                 "area_do_terreno_m2": 100.0,
                 "ano": 2024,
                 "mes": 1,
                 TARGET: 300000.0,
             },
             {
-                "bairro": "MOOCA",
-                "cep_prefixo": "03110",
+                "cep": "03110000",
                 "area_do_terreno_m2": 120.0,
                 "ano": 2024,
                 "mes": 2,
@@ -32,4 +30,4 @@ def test_model_pipeline_uses_current_feature_contract():
 
     assert pred is not None
     assert len(pred) == len(frame)
-    assert set(FEATURES) == {"bairro", "cep_prefixo", "area_do_terreno_m2", "ano", "mes"}
+    assert set(FEATURES) == {"cep", "area_do_terreno_m2", "ano", "mes"}

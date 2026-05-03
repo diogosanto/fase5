@@ -26,8 +26,7 @@ class FeatureContractTests(unittest.TestCase):
     def _valid_frame(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "bairro": [f"BAIRRO_{index}" for index in range(25)] * 40,
-                "cep_prefixo": ["12345"] * 1000,
+                "cep": [f"12345{index:03d}" for index in range(25)] * 40,
                 "area_do_terreno_m2": [100.0] * 1000,
                 "valor_venal_de_referencia": [100000.0 + index for index in range(1000)],
                 "ano": [2023, 2023, 2024, 2024, 2025, 2025, 2026, 2026] * 125,

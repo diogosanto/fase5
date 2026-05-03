@@ -1,181 +1,180 @@
 {
   "env": "dev",
-  "version": "2026.05.02.1934",
-  "model_path": "C:\\Users\\diesa\\Documents\\Pos - Machine Learning Engineering\\Fase 5\\precificador-imobiliario\\models\\dev\\model_2026.05.02.1934",
+  "version": "2026.05.03.0318",
+  "model_path": "C:\\Users\\brunn\\Git_Projects\\reset\\fase5\\models\\dev\\model_2026.05.03.0318",
   "split_strategy": "temporal_holdout",
   "holdout_period_start": "2025-06",
   "holdout_period_end": "2026-01",
-  "n_holdout": 10789,
-  "mae": 1910962.0194887503,
-  "median_absolute_error": 170383.6299999999,
-  "p95_absolute_error": 9281544.955,
-  "bias": -349750.2216250891,
-  "r2": 0.7168074397244455,
+  "n_holdout": 20321,
+  "mae": 2528779.7812218987,
+  "median_absolute_error": 171550.01499999966,
+  "p95_absolute_error": 12576237.82,
+  "bias": -1762282.242857056,
+  "r2": 0.6540487233644645,
   "prediction_range": {
-    "min": 1642.77,
-    "p05": 238080.85,
-    "median": 5790895.34,
+    "min": 2364.999,
+    "p05": 178625.11,
+    "median": 6727556.985,
     "p95": 39082957.0,
-    "max": 140086179.01
+    "max": 146649271.61
   },
   "segment_metrics": {
     "by_period": [
       {
         "period": "2025-12",
-        "n": 1528,
-        "mae": 5126924.161131542,
-        "median_absolute_error": 386639.4600000009,
-        "bias": -24509.702540197453
+        "n": 3240,
+        "mae": 6390283.188298899,
+        "median_absolute_error": 795762.3200000003,
+        "bias": -4154590.3344051233
       },
       {
         "period": "2025-11",
-        "n": 1115,
-        "mae": 2987037.9843340954,
-        "median_absolute_error": 423775.25,
-        "bias": -755704.6572067111
+        "n": 2421,
+        "mae": 3869245.595356624,
+        "median_absolute_error": 397932.19999999925,
+        "bias": -3409040.354904543
       },
       {
         "period": "2025-10",
-        "n": 1669,
-        "mae": 2341259.476192461,
-        "median_absolute_error": 296905.6950000003,
-        "bias": -816051.1801679562
+        "n": 3544,
+        "mae": 2779221.457847336,
+        "median_absolute_error": 219408.135,
+        "bias": -2105809.775147397
       },
       {
         "period": "2025-09",
-        "n": 1508,
-        "mae": 1454567.722834688,
-        "median_absolute_error": 292621.625,
-        "bias": -1263304.2682161534
+        "n": 2886,
+        "mae": 1940023.6199418595,
+        "median_absolute_error": 184065.6950000003,
+        "bias": -1621550.706028699
       },
       {
         "period": "2025-08",
-        "n": 1321,
-        "mae": 886891.9249544266,
-        "median_absolute_error": 64085.60499999998,
-        "bias": -200956.58256384975
+        "n": 2711,
+        "mae": 992360.6650758464,
+        "median_absolute_error": 48199.64499999955,
+        "bias": -621476.6693917682
       },
       {
         "period": "2025-07",
-        "n": 1741,
-        "mae": 769509.3992225811,
-        "median_absolute_error": 91837.445,
-        "bias": 111096.35800754308
+        "n": 3317,
+        "mae": 727262.1546358451,
+        "median_absolute_error": 2184.0,
+        "bias": -112609.66850827543
       },
       {
         "period": "2025-06",
-        "n": 1906,
-        "mae": 440664.2727237015,
-        "median_absolute_error": 31338.21999999974,
-        "bias": 234170.45362004676
+        "n": 2197,
+        "mae": 332616.7290202548,
+        "median_absolute_error": 0.0,
+        "bias": 62577.67313495666
       }
     ],
     "by_target_band": [
       {
         "target_band": "alto",
-        "n": 2590,
-        "mae": 4119975.6113055507,
-        "median_absolute_error": 628190.1449999996,
-        "bias": -2415602.176012114
+        "n": 5034,
+        "mae": 6395751.790622666,
+        "median_absolute_error": 400836.125,
+        "bias": -6380419.543922228
       },
       {
         "target_band": "medio_alto",
-        "n": 2701,
-        "mae": 2734441.9977891645,
-        "median_absolute_error": 386639.4600000009,
-        "bias": 711120.1171867703
+        "n": 5110,
+        "mae": 2428655.596225922,
+        "median_absolute_error": 397932.19999999925,
+        "bias": -802189.8157221344
       },
       {
         "target_band": "medio_baixo",
-        "n": 2780,
-        "mae": 632298.9615693727,
-        "median_absolute_error": 130770.1000000001,
-        "bias": -42601.109025865415
+        "n": 5086,
+        "mae": 782957.3124351589,
+        "median_absolute_error": 101125.42499999981,
+        "bias": -171428.2762840703
       },
       {
         "target_band": "baixo",
-        "n": 2718,
-        "mae": 295479.56062963925,
-        "median_absolute_error": 56909.909999999974,
-        "bias": 250423.1572217543
+        "n": 5091,
+        "mae": 549708.9830005936,
+        "median_absolute_error": 98105.025,
+        "bias": 251182.22324241928
       }
     ],
-    "worst_bairros_by_mae": [
+    "worst_ceps_by_mae": [
       {
-        "bairro": "VL CARMOZINA/COLONIA",
+        "cep": "82600500",
         "n": 80,
-        "mae": 46967945.213125005,
-        "median_absolute_error": 1688.8100000000559,
-        "bias": 46966889.706875004
+        "mae": 42925527.037375,
+        "median_absolute_error": 0.0,
+        "bias": 42925527.037375
       },
       {
-        "bairro": "CENTRO",
-        "n": 31,
-        "mae": 31457370.454354834,
-        "median_absolute_error": 44852068.885,
-        "bias": -31457370.454354834
+        "cep": "54061000",
+        "n": 157,
+        "mae": 31591465.420000017,
+        "median_absolute_error": 31591465.42,
+        "bias": -31591465.420000017
       },
       {
-        "bairro": "VILA CLEMENTINO",
-        "n": 241,
-        "mae": 11552327.705103729,
-        "median_absolute_error": 13984968.29,
-        "bias": -11363405.968049787
+        "cep": "40380340",
+        "n": 197,
+        "mae": 29800505.29,
+        "median_absolute_error": 29800505.29,
+        "bias": -29800505.29
       },
       {
-        "bairro": "POMPEIA",
-        "n": 73,
-        "mae": 8576661.566369863,
-        "median_absolute_error": 8586463.754999999,
-        "bias": -8576661.566369863
+        "cep": "45450500",
+        "n": 51,
+        "mae": 20187839.315294117,
+        "median_absolute_error": 20172333.39,
+        "bias": -20187839.315294117
       },
       {
-        "bairro": "QUADRA C",
-        "n": 43,
-        "mae": 7866804.591976744,
-        "median_absolute_error": 7865891.085000001,
-        "bias": -7866804.591976744
+        "cep": "47270020",
+        "n": 318,
+        "mae": 19988391.277924534,
+        "median_absolute_error": 19987870.67,
+        "bias": -19988391.277924534
       },
       {
-        "bairro": "VILA CARMOZINA",
-        "n": 39,
-        "mae": 7325424.3100000005,
-        "median_absolute_error": 7325424.3100000005,
-        "bias": 7325424.3100000005
+        "cep": "45370120",
+        "n": 62,
+        "mae": 18068689.011354834,
+        "median_absolute_error": 18103514.905,
+        "bias": -18068689.011354834
       },
       {
-        "bairro": "SANTANA",
-        "n": 78,
-        "mae": 6795111.097903846,
-        "median_absolute_error": 117953.42000000179,
-        "bias": -6795111.097903846
+        "cep": "45600020",
+        "n": 35,
+        "mae": 14666170.797857141,
+        "median_absolute_error": 14658883.615,
+        "bias": -14666170.797857141
       },
       {
-        "bairro": "VILA MARIANA",
-        "n": 93,
-        "mae": 6354373.029731185,
-        "median_absolute_error": 9874691.725,
-        "bias": -6274688.8533871
+        "cep": "23410020",
+        "n": 37,
+        "mae": 12493462.337432437,
+        "median_absolute_error": 12513769.945,
+        "bias": -12493462.337432437
       },
       {
-        "bairro": "BROOKLIN",
-        "n": 332,
-        "mae": 5374271.703917543,
-        "median_absolute_error": 7488908.614999998,
-        "bias": 5316119.159907754
+        "cep": "47090110",
+        "n": 280,
+        "mae": 12411363.825000001,
+        "median_absolute_error": 12411363.825,
+        "bias": -12411363.825000001
       },
       {
-        "bairro": "JD UBIRAJARA",
-        "n": 82,
-        "mae": 5340926.343963415,
-        "median_absolute_error": 7179605.905000001,
-        "bias": 5340926.343963415
+        "cep": "13030100",
+        "n": 35,
+        "mae": 12396858.738857143,
+        "median_absolute_error": 12398026.06,
+        "bias": -12396858.738857143
       }
     ]
   },
   "features": [
-    "bairro",
-    "cep_prefixo",
+    "cep",
     "area_do_terreno_m2",
     "ano",
     "mes"

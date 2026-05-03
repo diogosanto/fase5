@@ -16,8 +16,7 @@ MODEL_CANDIDATE_DIRS = [
     Path("models/dev"),
 ]
 REQUIRED_MODEL_FIELDS = [
-    "bairro",
-    "cep_prefixo",
+    "cep",
     "area_do_terreno_m2",
     "ano",
     "mes",
@@ -93,8 +92,14 @@ def _safe_int(value: Any) -> int:
     return int(float(str(value).replace(",", ".")))
 
 
+def _normalize_cep(value: Any) -> str:
+    return "".join(char for char in str(value) if char.isdigit())
+
+
 def _normalize_prediction_payload(payload: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(payload)
+    if "cep" not in normalized and "cep_prefixo" in normalized:
+        normalized["cep"] = normalized["cep_prefixo"]
     if "area_do_terreno_m2" not in normalized and "area" in normalized:
         normalized["area_do_terreno_m2"] = normalized["area"]
     if ("ano" not in normalized or "mes" not in normalized) and normalized.get("ano_mes") not in (None, ""):
@@ -112,24 +117,17 @@ def _retrieve_context(query: str):
 
 
 def _parse_prediction_payload_from_text(text: str) -> dict[str, Any]:
-    bairro_match = re.search(
-        r"bairro\s+([a-zA-ZÃ€-Ã¿\s]+?)(?:,| com| area| Ã¡rea| cep_prefixo| ano| mes| ano_mes|$)",
-        text,
-        flags=re.IGNORECASE,
-    )
     area_match = re.search(r"area(?:_do_terreno_m2)?\s+(\d+(?:[.,]\d+)?)", text, flags=re.IGNORECASE)
-    cep_match = re.search(r"cep(?:_prefixo)?\s+(\d{1,8})", text, flags=re.IGNORECASE)
+    cep_match = re.search(r"cep(?:_numero|_prefixo)?\s+([\d.\-]{1,12})", text, flags=re.IGNORECASE)
     ano_match = re.search(r"\bano\s+(\d{4})", text, flags=re.IGNORECASE)
     mes_match = re.search(r"\bmes\s+(\d{1,2})", text, flags=re.IGNORECASE)
     ano_mes_match = re.search(r"ano_mes\s+(\d{6})", text, flags=re.IGNORECASE)
 
     payload: dict[str, Any] = {}
-    if bairro_match:
-        payload["bairro"] = bairro_match.group(1).strip(" ,.")
     if area_match:
         payload["area_do_terreno_m2"] = area_match.group(1).replace(",", ".")
     if cep_match:
-        payload["cep_prefixo"] = cep_match.group(1)
+        payload["cep"] = _normalize_cep(cep_match.group(1))
     if ano_match:
         payload["ano"] = ano_match.group(1)
     if mes_match:
@@ -301,12 +299,13 @@ def price_estimator(action_input: Any) -> ToolResult:
 
     try:
         model_input = {
-            "bairro": str(payload["bairro"]).strip().upper(),
-            "cep_prefixo": str(payload["cep_prefixo"]).strip()[:5],
+            "cep": _normalize_cep(payload["cep"]),
             "area_do_terreno_m2": _safe_float(payload["area_do_terreno_m2"]),
             "ano": _safe_int(payload["ano"]),
             "mes": _safe_int(payload["mes"]),
         }
+        if not model_input["cep"]:
+            raise ValueError("CEP invalido")
         frame = pd.DataFrame([model_input])
         prediction = float(model.predict(frame)[0])
     except Exception as exc:
@@ -347,7 +346,9 @@ def _load_region_dataframe() -> pd.DataFrame:
     if not PROCESSED_DATA_PATH.exists():
         raise FileNotFoundError(f"Base processada nao encontrada: {PROCESSED_DATA_PATH}")
 
-    dataframe = pd.read_csv(PROCESSED_DATA_PATH, sep=";")
+    dataframe = pd.read_csv(PROCESSED_DATA_PATH, sep=";", dtype={"cep": str})
+    if "bairro" not in dataframe.columns and "cep" in dataframe.columns:
+        dataframe["bairro"] = dataframe["cep"].astype(str)
     dataframe["bairro"] = dataframe["bairro"].astype(str).str.strip().str.upper()
     if (
         "valor_m2_referencia" not in dataframe.columns
@@ -530,7 +531,7 @@ TOOL_REGISTRY = {
     ),
     "price_estimator": ToolSpec(
         name="price_estimator",
-        description="Executa inferencia no modelo existente usando bairro, cep_prefixo, area_do_terreno_m2, ano e mes.",
+        description="Executa inferencia no modelo existente usando cep, area_do_terreno_m2, ano e mes.",
         function=price_estimator,
     ),
     "region_comparer": ToolSpec(

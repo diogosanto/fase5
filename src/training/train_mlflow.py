@@ -34,8 +34,8 @@ from src.training.splits import (  # noqa: E402
 INPUT = PROJECT_ROOT / "data" / "processed" / "itbi_features_minimal.csv"
 MODEL_PARAMS = load_params().get("model", {})
 TARGET = str(MODEL_PARAMS.get("target_column", "valor_venal_de_referencia"))
-FEATURES = ["bairro", "cep_prefixo", "area_do_terreno_m2", "ano", "mes"]
-CATEGORICAL_FEATURES = ["bairro", "cep_prefixo"]
+FEATURES = ["cep", "area_do_terreno_m2", "ano", "mes"]
+CATEGORICAL_FEATURES = ["cep"]
 NUMERIC_FEATURES = ["area_do_terreno_m2", "ano", "mes"]
 TEST_SIZE = float(MODEL_PARAMS.get("test_size", 0.2))
 RANDOM_STATE = int(MODEL_PARAMS.get("random_state", 42))
@@ -88,17 +88,13 @@ def load_training_data():
     if not INPUT.exists():
         raise FileNotFoundError(f"Dataset de features nao encontrado: {INPUT}")
 
-    df = pd.read_csv(INPUT, sep=";")
+    df = pd.read_csv(INPUT, sep=";", dtype={"cep": str})
     required_cols = FEATURES + [TARGET]
     missing = [col for col in required_cols if col not in df.columns]
     if missing:
         raise ValueError(f"Colunas obrigatorias ausentes: {missing}")
 
     df = df.dropna(subset=required_cols).copy()
-
-    counts = df["bairro"].value_counts()
-    bairros_validos = counts[counts >= 2].index
-    df = df[df["bairro"].isin(bairros_validos)].copy()
 
     if len(df) < 10:
         raise ValueError("Dados insuficientes para treino apos filtros minimos.")

@@ -35,15 +35,19 @@ def prepare_dataset(dataset_path: Path) -> pd.DataFrame:
     if not dataset_path.exists():
         raise FileNotFoundError(f"Dataset nao encontrado: {dataset_path}")
 
-    df = pd.read_csv(dataset_path, sep=";", low_memory=False)
+    df = pd.read_csv(dataset_path, sep=";", low_memory=False, dtype={"cep": str})
     return prepare_frame(df)
 
 
 def prepare_frame(df: pd.DataFrame) -> pd.DataFrame:
+    if REGION not in df.columns and "cep" in df.columns:
+        df = df.copy()
+        df[REGION] = df["cep"]
+
     required_columns = [REGION, AREA, TARGET]
     missing = [column for column in required_columns if column not in df.columns]
     if missing:
-        raise ValueError(f"Colunas obrigatorias ausentes para EDA: {missing}")
+        raise ValueError(f"Colunas obrigatorias ausentes para EDA: {missing}. Informe bairro ou cep.")
 
     df = df.dropna(subset=required_columns).copy()
     df[AREA] = pd.to_numeric(df[AREA], errors="coerce")
@@ -389,7 +393,7 @@ def run_eda(dataset_path: Path, output_root: Path, min_samples: int, bins: int) 
     df = prepare_dataset(dataset_path)
     summary = bairro_summary(df, min_samples=min_samples)
     if summary.empty:
-        raise ValueError(f"Nenhum bairro possui ao menos {min_samples} registros.")
+        raise ValueError(f"Nenhuma regiao possui ao menos {min_samples} registros.")
 
     export_excels(df, summary, output_dir, bins=bins)
     export_images(df, summary, output_dir, bins=bins)

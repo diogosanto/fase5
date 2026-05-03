@@ -101,7 +101,7 @@ class ChatEndpointTests(unittest.IsolatedAsyncioTestCase):
                 "property_data": {
                     "area": 80,
                     "quartos": 2,
-                    "bairro": "Moema",
+                    "cep": "04001000",
                     "preco": 950000,
                 },
             },
@@ -110,7 +110,7 @@ class ChatEndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Dados do imovel informados pelo usuario", fake_agent.last_message)
         self.assertEqual(fake_agent.last_property_data["area"], 80)
-        self.assertIn("Moema", fake_agent.last_message)
+        self.assertIn("04001000", fake_agent.last_message)
 
     async def test_chat_rejects_empty_message(self) -> None:
         """Mensagem vazia deve ser barrada pela validacao Pydantic/FastAPI."""
@@ -170,8 +170,7 @@ class AgentOrchestratorTests(unittest.TestCase):
                 "Qual o preco desse apartamento?",
                 property_data={
                     "area": 60,
-                    "bairro": "MOOCA - SP",
-                    "cep_prefixo": "03110",
+                    "cep": "03110000",
                     "ano_mes": 202401,
                 },
             )
@@ -179,7 +178,7 @@ class AgentOrchestratorTests(unittest.TestCase):
         self.assertEqual(result["tools_used"], ["price_estimator"])
         self.assertIn("Estimativa gerada pelo modelo de predicao", result["answer"])
         self.assertEqual(result["steps"][0]["action_input"]["area_do_terreno_m2"], 60)
-        self.assertEqual(result["steps"][0]["action_input"]["cep_prefixo"], "03110")
+        self.assertEqual(result["steps"][0]["action_input"]["cep"], "03110000")
         self.assertEqual(result["steps"][0]["action_input"]["ano"], 2024)
         self.assertEqual(result["steps"][0]["action_input"]["mes"], 1)
 

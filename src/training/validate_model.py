@@ -20,7 +20,7 @@ from src.training.splits import get_period_range, split_temporal_holdout  # noqa
 DATA_PATH = PROJECT_ROOT / "data" / "processed" / "itbi_features_minimal.csv"
 MODEL_PARAMS = load_params().get("model", {})
 TARGET = str(MODEL_PARAMS.get("target_column", "valor_venal_de_referencia"))
-FEATURES = ["bairro", "cep_prefixo", "area_do_terreno_m2", "ano", "mes"]
+FEATURES = ["cep", "area_do_terreno_m2", "ano", "mes"]
 TEST_SIZE = float(MODEL_PARAMS.get("test_size", 0.2))
 SPLIT_STRATEGY = str(MODEL_PARAMS.get("split_strategy", "temporal_holdout"))
 MIN_GROUP_SIZE_FOR_SEGMENTS = int(MODEL_PARAMS.get("min_group_size_for_segments", 30))
@@ -56,16 +56,13 @@ def load_holdout_data():
     if not DATA_PATH.exists():
         raise FileNotFoundError(f"Dataset de features nao encontrado: {DATA_PATH}")
 
-    df = pd.read_csv(DATA_PATH, sep=";")
+    df = pd.read_csv(DATA_PATH, sep=";", dtype={"cep": str})
     required_cols = FEATURES + [TARGET]
     missing = [col for col in required_cols if col not in df.columns]
     if missing:
         raise ValueError(f"Colunas obrigatorias ausentes: {missing}")
 
     df = df.dropna(subset=required_cols).copy()
-    counts = df["bairro"].value_counts()
-    bairros_validos = counts[counts >= 2].index
-    df = df[df["bairro"].isin(bairros_validos)].copy()
     if len(df) < 10:
         raise ValueError("Dados insuficientes para validacao apos filtros minimos.")
 

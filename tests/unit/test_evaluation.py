@@ -17,7 +17,7 @@ class EvaluationTests(unittest.TestCase):
     def test_segment_metrics_group_by_period_and_target_band(self) -> None:
         frame = pd.DataFrame(
             {
-                "bairro": ["A", "A", "B", "B"],
+                "cep": ["01001000", "01001000", "03110000", "03110000"],
                 "ano": [2024, 2024, 2025, 2025],
                 "mes": [1, 1, 2, 2],
             }
@@ -27,7 +27,7 @@ class EvaluationTests(unittest.TestCase):
 
         self.assertIn("by_period", metrics)
         self.assertIn("by_target_band", metrics)
-        self.assertIn("worst_bairros_by_mae", metrics)
+        self.assertIn("worst_ceps_by_mae", metrics)
         self.assertTrue(metrics["by_period"])
 
 

@@ -8,7 +8,7 @@ from api.main import PredictRequest, health, predict
 
 class FakeModel:
     def predict(self, dataframe):
-        assert list(dataframe.columns) == ["bairro", "cep_prefixo", "area_do_terreno_m2", "ano", "mes"]
+        assert list(dataframe.columns) == ["cep", "area_do_terreno_m2", "ano", "mes"]
         return [123456.0]
 
 
@@ -21,8 +21,7 @@ def test_predict():
     api_main.model = FakeModel()
     response = predict(
         PredictRequest(
-            bairro="CENTRO",
-            cep_prefixo="01001",
+            cep="01001000",
             area_do_terreno_m2=100,
             ano=2024,
             mes=1,
@@ -40,8 +39,7 @@ class PredictEndpointValidationTests(unittest.IsolatedAsyncioTestCase):
             response = await client.post(
                 "/predict",
                 json={
-                    "bairro": "MOEMA",
-                    "cep_prefixo": "04001",
+                    "cep": "04001000",
                     "area_do_terreno_m2": 120,
                 },
             )
@@ -58,8 +56,7 @@ class PredictEndpointValidationTests(unittest.IsolatedAsyncioTestCase):
             response = await client.post(
                 "/predict",
                 json={
-                    "bairro": "MOEMA",
-                    "cep_prefixo": "04001",
+                    "cep": "04001000",
                     "area_do_terreno_m2": "abc",
                     "ano": 2024,
                     "mes": 1,

@@ -109,7 +109,7 @@ class ReActAgentTests(unittest.TestCase):
         agent = ReActAgent(max_steps=3, llm=NeverCalledLLM())
 
         with patch("src.agent.react_agent.TOOLS", {"price_estimator": fake_price_estimator}):
-            response = agent.run("Quanto vale um apartamento com bairro Moema, area 80, cep_prefixo 04001 e ano_mes 202401?")
+            response = agent.run("Quanto vale um apartamento com cep 04001000, area 80 e ano_mes 202401?")
 
         self.assertEqual(response.tools_used, ["price_estimator"])
         self.assertIn("Estimativa gerada pelo modelo de predicao", response.answer)

@@ -42,7 +42,7 @@ def segment_metrics(
     return {
         "by_period": _group_metrics(eval_frame, "period", min_group_size),
         "by_target_band": _group_metrics(eval_frame, "target_band", min_group_size),
-        "worst_bairros_by_mae": _group_metrics(eval_frame, "bairro", min_group_size)[:10],
+        "worst_ceps_by_mae": _group_metrics(eval_frame, "cep", min_group_size)[:10] if "cep" in eval_frame.columns else [],
     }
 
 

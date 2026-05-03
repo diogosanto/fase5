@@ -75,13 +75,13 @@ class AgentToolsTests(unittest.TestCase):
     def test_price_estimator_validates_required_fields(self) -> None:
         """Confirma que a tool nao inventa predicao quando faltam campos do modelo."""
 
-        result = tools.price_estimator({"bairro": "Moema", "area": 80})
+        result = tools.price_estimator({"area": 80})
 
         payload = json.loads(result.content)
         self.assertEqual(payload["tool"], "price_estimator")
         self.assertEqual(payload["status"], "error")
         self.assertEqual(payload["error"], "missing_fields")
-        self.assertIn("cep_prefixo", payload["missing_fields"])
+        self.assertIn("cep", payload["missing_fields"])
         self.assertIn("ano", payload["missing_fields"])
         self.assertIn("mes", payload["missing_fields"])
 
@@ -91,9 +91,8 @@ class AgentToolsTests(unittest.TestCase):
         with patch("src.agent.tools._load_prediction_model", return_value=(FakeModel(), "model_test")):
             result = tools.price_estimator(
                 {
-                    "bairro": "Moema",
                     "area": 80,
-                    "cep_prefixo": "04001",
+                    "cep": "04001000",
                     "ano_mes": 202401,
                 }
             )
@@ -103,7 +102,7 @@ class AgentToolsTests(unittest.TestCase):
         self.assertEqual(payload["estimated_price"], 950000.0)
         self.assertEqual(payload["currency"], "BRL")
         self.assertEqual(payload["input"]["area_do_terreno_m2"], 80.0)
-        self.assertEqual(payload["input"]["cep_prefixo"], "04001")
+        self.assertEqual(payload["input"]["cep"], "04001000")
         self.assertEqual(payload["input"]["ano"], 2024)
         self.assertEqual(payload["input"]["mes"], 1)
         self.assertEqual(payload["versao_modelo"], "model_test")

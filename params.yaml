@@ -11,7 +11,7 @@ data_quality:
 
 feature_quality:
   min_rows: 1000
-  min_unique_bairros: 20
+  min_unique_ceps: 20
   min_unique_periods: 6
   area_min: 1
   area_max: 50000

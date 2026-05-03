@@ -50,14 +50,13 @@ Responsabilidade: chamar o modelo existente de precificacao, sem alterar o model
 Campos obrigatorios alinhados ao endpoint `/predict`:
 
 ```text
-bairro
-cep_prefixo
+cep
 area_do_terreno_m2
 ano
 mes
 ```
 
-A tool tambem aceita `area` como alias para `area_do_terreno_m2` e `ano_mes` como alias para `ano` e `mes`.
+A tool tambem aceita `area` como alias para `area_do_terreno_m2`, `ano_mes` como alias para `ano` e `mes`, e `cep_prefixo` como compatibilidade temporaria para `cep`.
 
 Saida principal:
 
@@ -65,8 +64,7 @@ Saida principal:
 {
   "tool": "price_estimator",
   "input": {
-    "bairro": "MOEMA",
-    "cep_prefixo": "04001",
+    "cep": "04001000",
     "area_do_terreno_m2": 80,
     "ano": 2024,
     "mes": 1

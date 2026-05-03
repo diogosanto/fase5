@@ -8,8 +8,8 @@ import httpx
 
 class FakeModel:
     def predict(self, dataframe):
-        assert list(dataframe.columns) == ["bairro", "cep_prefixo", "area_do_terreno_m2", "ano", "mes"]
-        assert dataframe.iloc[0]["bairro"] == "MOEMA"
+        assert list(dataframe.columns) == ["cep", "area_do_terreno_m2", "ano", "mes"]
+        assert dataframe.iloc[0]["cep"] == "04001000"
         return [987654.32]
 
 
@@ -57,8 +57,7 @@ class ApiEndpointIntegrationTests(unittest.IsolatedAsyncioTestCase):
             "POST",
             "/predict",
             json={
-                "bairro": "Moema",
-                "cep_prefixo": "04001",
+                "cep": "04001000",
                 "area_do_terreno_m2": 120,
                 "ano": 2024,
                 "mes": 1,
@@ -76,8 +75,7 @@ class ApiEndpointIntegrationTests(unittest.IsolatedAsyncioTestCase):
             "POST",
             "/predict",
             json={
-                "bairro": "Moema",
-                "cep_prefixo": "04001",
+                "cep": "04001000",
                 "area_do_terreno_m2": 120,
             },
         )
@@ -105,8 +103,7 @@ class ApiEndpointIntegrationTests(unittest.IsolatedAsyncioTestCase):
             "POST",
             "/predict",
             json={
-                "bairro": "Moema",
-                "cep_prefixo": "04001",
+                "cep": "04001000",
                 "area_do_terreno_m2": 120,
                 "ano": 2024,
                 "mes": 1,

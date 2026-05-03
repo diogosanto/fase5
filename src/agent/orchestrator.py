@@ -102,7 +102,6 @@ class AgentOrchestrator:
             "qual o preço",
             "preco desse",
             "preço desse",
-            "preco para bairro",
             "compare",
             "comparar",
         ]
@@ -160,6 +159,8 @@ class AgentOrchestrator:
 
     def _normalize_property_data_for_model(self, property_data: dict[str, Any]) -> dict[str, Any]:
         payload = dict(property_data)
+        if "cep" not in payload and "cep_prefixo" in payload:
+            payload["cep"] = payload["cep_prefixo"]
         if "area_do_terreno_m2" not in payload and "area" in payload:
             payload["area_do_terreno_m2"] = payload["area"]
         if ("ano" not in payload or "mes" not in payload) and payload.get("ano_mes") not in (None, ""):
@@ -169,8 +170,7 @@ class AgentOrchestrator:
         return {
             key: payload.get(key)
             for key in [
-                "bairro",
-                "cep_prefixo",
+                "cep",
                 "area_do_terreno_m2",
                 "ano",
                 "mes",
@@ -184,7 +184,7 @@ class AgentOrchestrator:
             return (
                 "Acionei o modelo de predicao, mas ainda nao e possivel estimar o preco porque faltam "
                 f"campos obrigatorios: {', '.join(missing_fields)}. "
-                "Envie bairro, cep_prefixo, area_do_terreno_m2 e ano/mes em property_data para obter a estimativa pelo modelo."
+                "Envie cep, area_do_terreno_m2 e ano/mes em property_data para obter a estimativa pelo modelo."
             )
 
         try:

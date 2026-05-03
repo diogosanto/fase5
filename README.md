@@ -69,7 +69,19 @@ A limpeza remove linhas de cabecalho embutidas nas abas mensais, repara mojibake
 
 ### Features e modelagem
 
-As features finais evitam vazamento de alvo. Foram removidas colunas derivadas diretamente de `valor_venal_de_referencia`, como `valor_m2` e `media_valor_cep`. A etapa gera um contrato de features com colunas obrigatorias, colunas proibidas, cobertura temporal, cobertura por bairro e faixas numericas. O treino e a validacao usam holdout temporal: os registros mais recentes ficam para teste, reduzindo a chance de avaliar o modelo com uma divisao aleatoria otimista. Os relatorios incluem MAE, erro mediano, erro p95, vies, metricas segmentadas por periodo, faixa de valor e bairros com pior erro, alem de backtesting temporal em multiplas janelas.
+As features finais evitam vazamento de alvo. O modelo usa somente `cep`, `area_do_terreno_m2`, `ano` e `mes`; colunas como `bairro`, `cep_prefixo`, `valor_m2` e `media_valor_cep` nao entram no treinamento. A etapa gera um contrato de features com colunas obrigatorias, colunas proibidas, cobertura temporal, cobertura por CEP e faixas numericas. O treino e a validacao usam holdout temporal: os registros mais recentes ficam para teste, reduzindo a chance de avaliar o modelo com uma divisao aleatoria otimista. Os relatorios incluem MAE, erro mediano, erro p95, vies, metricas segmentadas por periodo, faixa de valor e CEPs com pior erro, alem de backtesting temporal em multiplas janelas.
+
+O resumo de atendimento da Etapa 1 do Datathon fica em `docs/ETAPA1_DADOS_BASELINE.md`. Ele lista os artefatos esperados de EDA, as evidencias registradas no `dvc.lock`, o roteiro de reproducao com DVC/Docker e o mapeamento das metricas tecnicas para impacto de negocio.
+
+### Metricas de negocio
+
+As metricas salvas em `data/metrics/train_metrics.json` e `data/metrics/validation_dev.json` devem ser interpretadas tambem em linguagem de negocio:
+
+- `mae`: erro medio absoluto em reais; mede quanto a precificacao erra em media.
+- `median_absolute_error`: erro tipico em reais; descreve uma previsao comum sem ser dominado por outliers.
+- `p95_absolute_error`: risco de erro extremo; mostra o erro nos piores 5% dos casos.
+- `bias`: tendencia de superprecificacao ou subprecificacao; valores positivos indicam estimativa acima do real e valores negativos indicam estimativa abaixo do real.
+- `r2`: capacidade explicativa do modelo; complementa as metricas em reais, mas nao substitui a leitura de erro financeiro.
 
 ### MLOps e reprodutibilidade
 
@@ -119,7 +131,7 @@ pytest -q
 
 ## EDA de valor por m2
 
-Gere a analise de valor medio por m2 por bairro:
+Gere a analise de valor medio por m2. Quando o dataset de features nao tiver `bairro`, a analise usa `cep` como agrupamento:
 
 ```powershell
 python src/features/modelagem/eda_valor_m2_bairro.py --input data/processed/itbi_features_minimal.csv
@@ -127,9 +139,9 @@ python src/features/modelagem/eda_valor_m2_bairro.py --input data/processed/itbi
 
 A saida fica em `src/data/eda/features_modelagem/<nome_do_dataset>_<hash>`, com cinco arquivos Excel. Todos possuem aba `dados` e aba `grafico`:
 
-- `valor_m2_por_bairro.xlsx`: media e variancia do valor por m2 por bairro, incluindo resumo do valor medio do m2 de Sao Paulo.
-- `top_10_bairros_maior_valor_m2.xlsx`: 10 bairros com maior preco por m2.
-- `bottom_30_bairros_menor_valor_m2.xlsx`: 30 bairros com menor preco por m2.
+- `valor_m2_por_bairro.xlsx`: media e variancia do valor por m2 por agrupamento, incluindo resumo do valor medio do m2 de Sao Paulo.
+- `top_10_bairros_maior_valor_m2.xlsx`: 10 agrupamentos com maior preco por m2.
+- `bottom_30_bairros_menor_valor_m2.xlsx`: 30 agrupamentos com menor preco por m2.
 - `frequencia_venda_por_m2.xlsx`: frequencia de venda por faixa de valor por m2.
 - `frequencia_venda_por_valor.xlsx`: frequencia de venda por faixa de valor de venda.
 

@@ -376,7 +376,7 @@ class ReActAgent:
                 "quanto custa",
                 "qual o preco",
                 "qual o preço",
-                "preco para bairro",
+                "preco para cep",
             ]
         ):
             return {
