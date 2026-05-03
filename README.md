@@ -143,6 +143,59 @@ Servicos:
 - Prometheus: `http://localhost:9090`
 - Grafana: `http://localhost:3030`
 
+### Observabilidade com Prometheus e Grafana
+
+Nao e necessario instalar Prometheus ou Grafana separadamente. Ao executar `docker compose up --build`, o Docker Compose baixa e sobe os containers da API, Prometheus e Grafana conforme a configuracao do projeto.
+
+Fluxo recomendado para validar a observabilidade:
+
+1. Verifique se o Docker esta instalado:
+
+```powershell
+docker --version
+docker compose version
+```
+
+2. Suba a stack:
+
+```powershell
+docker compose up --build
+```
+
+3. Gere trafego na API:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health
+
+Invoke-RestMethod -Method Post -Uri "http://localhost:8000/chat" `
+  -ContentType "application/json" `
+  -Body '{"message":"Quais fatores influenciam o preco de um imovel?"}'
+```
+
+4. Valide as metricas expostas pela API:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/metrics
+```
+
+5. Acesse o Prometheus em `http://localhost:9090` e consulte metricas como:
+
+```text
+http_requests_total
+http_request_duration_seconds_count
+```
+
+6. Acesse o Grafana em `http://localhost:3030`.
+
+Credenciais padrao, se nao alteradas no Compose:
+
+```text
+usuario: admin
+senha: admin
+```
+
+No Grafana, valide se o datasource do Prometheus esta configurado e se os dashboards conseguem consultar as metricas da API. Caso nenhum dado apareca, gere novas chamadas para `/health`, `/predict` ou `/chat` e aguarde alguns segundos para o Prometheus coletar os dados.
+
 ## Testes
 
 ```powershell
