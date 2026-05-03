@@ -2,111 +2,127 @@
 
 ## Resumo
 
-O projeto usa a API Groq como provedor oficial de LLM para a camada de RAG e Agent.
+O projeto suporta dois caminhos para servir a LLM usada pelo Agent/RAG:
 
-Configuracao principal:
+1. **LLM quantizada servida via API compativel com Ollama**
+2. **Groq API como provider padrao/fallback operacional**
+
+Isso permite atender ao requisito de LLM servida via API com quantizacao, sem obrigar que o Ollama rode na maquina local do desenvolvedor.
+
+## Configuracao Para LLM Quantizada via Ollama API
+
+Para usar uma LLM quantizada servida por Ollama, configure:
+
+```env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://servidor:11434
+OLLAMA_MODEL=llama3.1:8b-instruct-q4
+```
+
+O `OLLAMA_BASE_URL` pode apontar para:
+
+- Ollama rodando localmente;
+- Ollama em outro computador da rede;
+- Ollama em uma VM/cloud;
+- Ollama em um container Docker;
+- qualquer endpoint compativel com a API `/api/generate` do Ollama.
+
+O ponto principal e: **o projeto nao precisa hospedar os pesos da LLM dentro da propria API FastAPI**. Ele precisa conseguir consumir uma LLM quantizada servida por uma API. Essa integracao esta implementada em `src/agent/llm.py`.
+
+## Configuracao Padrao/Fallback com Groq
+
+Por limitacao operacional do MVP, o provider padrao continua sendo Groq:
 
 ```env
 LLM_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.1-8b-instant
 ```
 
-A chave `GROQ_API_KEY` deve ser injetada por variavel de ambiente ou arquivo `.env` local e nunca deve ser versionada.
+Groq e usado como fallback por ser simples de executar na demonstracao, nao exigir GPU local e reduzir complexidade de infraestrutura.
 
-## Decisao
+## Decisao Arquitetural
 
-A LLM sera servida via API Groq, usando o modelo `llama-3.1-8b-instant`, em vez de executar uma LLM local quantizada dentro do ambiente Docker do projeto.
+A decisao final e:
 
-Essa decisao atende ao requisito de "LLM servido via API com quantizacao / decidir entre LLM local quantizado ou justificar o uso da API Groq", pois documenta explicitamente a alternativa avaliada e a justificativa tecnica para o caminho escolhido.
+> O projeto suporta LLM quantizada servida via API compativel com Ollama. Para execucao local ou remota, basta configurar `OLLAMA_BASE_URL` e `OLLAMA_MODEL`. Por padrao, usamos Groq por limitacao operacional, mas a camada esta preparada para LLM quantizada servida via API.
 
-## Alternativa Considerada: LLM Local Quantizada
+Essa abordagem e mais flexivel do que acoplar uma LLM local ao container da API.
 
-A alternativa seria empacotar uma LLM local quantizada, por exemplo em formato GGUF, servida por ferramentas como Ollama, llama.cpp ou vLLM.
+## Por Que Nao Rodar Ollama Obrigatoriamente Local
 
-Essa abordagem teria algumas vantagens:
+Rodar uma LLM quantizada localmente pode exigir:
 
-- maior controle sobre infraestrutura e modelo;
-- menor dependencia de provedor externo;
-- possibilidade de execucao offline;
-- controle direto sobre politicas de retencao de dados.
+- mais memoria RAM;
+- CPU/GPU mais forte;
+- download de pesos do modelo;
+- imagem Docker maior;
+- mais tempo de build/deploy;
+- maior complexidade para a banca reproduzir.
 
-No entanto, ela nao foi selecionada para esta fase do projeto.
+Por isso, o projeto separa responsabilidades:
 
-## Por Que a LLM Local Quantizada Nao Foi Selecionada
+```text
+Agent/RAG -> src/agent/llm.py -> Ollama API -> modelo quantizado
+```
 
-Para o escopo da FIAP Fase 5, a LLM local quantizada aumentaria complexidade operacional sem trazer ganho proporcional para o MVP.
-
-Principais motivos:
-
-- exigiria imagem Docker maior e mais lenta para build/deploy;
-- aumentaria consumo de CPU/RAM ou exigiria GPU local;
-- adicionaria uma nova camada operacional para servir, monitorar e atualizar a LLM;
-- dificultaria reproducibilidade em maquinas sem hardware adequado;
-- deslocaria o foco do projeto, que esta na integracao MLE de RAG, Agent, API, observabilidade e governanca.
-
-Com Groq, o projeto ganha baixa latencia, simplicidade de deploy e menor carga operacional para demonstrar o fluxo completo de Agent/RAG.
+Assim, a LLM pode estar local, remota ou em container, desde que exponha a API esperada.
 
 ## Impacto no Docker
 
-O container da API nao inclui pesos de LLM nem secrets.
+O container da API nao inclui pesos de LLM e nao inclui secrets.
 
-As variaveis da LLM sao injetadas em runtime:
+Variaveis relevantes:
+
+```env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://servidor:11434
+OLLAMA_MODEL=llama3.1:8b-instruct-q4
+LLM_MAX_TOKENS=300
+LLM_TEMPERATURE=0.2
+LLM_TIMEOUT_SECONDS=30
+```
+
+Ou, para fallback Groq:
 
 ```env
 LLM_PROVIDER=groq
-GROQ_API_KEY=...
+GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.1-8b-instant
-LLM_MAX_TOKENS=300
-LLM_TEMPERATURE=0.2
-LLM_TIMEOUT_SECONDS=30
 ```
 
-Isso reduz tamanho da imagem, tempo de build e risco de vazamento de credenciais.
-
-## Seguranca da API Key
+## Seguranca
 
 Boas praticas adotadas:
 
-- `GROQ_API_KEY` nao e hardcoded no codigo;
-- `.env.example` usa placeholder, nao chave real;
-- a chave deve ficar apenas no `.env` local, secret manager ou variaveis do ambiente de execucao;
-- logs registram provider/model, mas nao registram API key;
-- mensagens de erro nao retornam secrets ao usuario.
+- `GROQ_API_KEY` nao e hardcoded;
+- `.env.example` usa placeholders;
+- secrets ficam apenas em `.env`, secret manager ou variaveis do ambiente;
+- logs registram provider/model/latencia, mas nao registram API keys;
+- Ollama nao exige API key por padrao, mas o endpoint deve ficar protegido por rede, firewall ou proxy quando remoto.
 
-## Configuracoes Operacionais
-
-As seguintes variaveis controlam custo, latencia e previsibilidade:
-
-```env
-LLM_MAX_TOKENS=300
-LLM_TEMPERATURE=0.2
-LLM_TIMEOUT_SECONDS=30
-```
-
-`LLM_MAX_TOKENS` limita o tamanho da resposta, `LLM_TEMPERATURE` reduz variabilidade e `LLM_TIMEOUT_SECONDS` evita chamadas presas indefinidamente.
-
-## Metadados e Observabilidade
+## Observabilidade
 
 A camada `src/agent/llm.py` registra:
 
 - provider usado;
 - modelo usado;
-- latencia da chamada;
-- quantidade aproximada de tokens no prompt;
-- token usage retornado pelo provedor, quando disponivel;
+- latencia;
+- estimativa de tokens do prompt;
+- token usage quando o provedor retorna essa informacao;
 - erros de chamada sem expor secrets.
 
 ## Limitacoes e Mitigacoes
 
-Limitacao: dependencia de servico externo.
-Mitigacao: erros de provider sao tratados e retornados como falha temporaria, sem stack trace.
+Limitacao: Ollama remoto precisa estar disponivel.
+Mitigacao: usar `LLM_TIMEOUT_SECONDS` e fallback operacional com Groq quando necessario.
 
-Limitacao: custo e limites de quota.
-Mitigacao: `LLM_MAX_TOKENS`, `RAG_TOP_K`, `AGENT_MAX_STEPS` e logs de chamadas reduzem consumo desnecessario.
+Limitacao: a quantizacao depende do modelo servido no Ollama.
+Mitigacao: documentar explicitamente o modelo configurado em `OLLAMA_MODEL`, por exemplo `llama3.1:8b-instruct-q4`.
 
-Limitacao: envio de dados para terceiro.
-Mitigacao: nao enviar secrets, evitar payloads sensiveis completos em logs e manter escopo de dados minimo para a resposta.
+Limitacao: custo/quota no Groq.
+Mitigacao: limitar `LLM_MAX_TOKENS`, `RAG_TOP_K` e `AGENT_MAX_STEPS`.
 
-## Decisao Final
+## Conclusao
 
-Para este projeto, a API Groq e a escolha oficial de serving da LLM. A LLM local quantizada permanece como alternativa futura caso o projeto exija execucao offline, controle total de infraestrutura ou reducao de dependencia externa.
+O projeto atende ao requisito ao permitir LLM quantizada servida via API compativel com Ollama, mantendo Groq como fallback operacional para demonstracao e desenvolvimento.

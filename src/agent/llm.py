@@ -26,6 +26,7 @@ class LLMConfig:
     max_tokens: int
     temperature: float
     timeout_seconds: float
+    base_url: str | None = None
 
 
 @dataclass
@@ -74,6 +75,17 @@ def get_llm_config() -> LLMConfig:
             timeout_seconds=timeout_seconds,
         )
 
+    if provider == "ollama":
+        return LLMConfig(
+            provider=provider,
+            model=os.getenv("OLLAMA_MODEL", "llama3.1:8b-instruct-q4"),
+            api_key="",
+            max_tokens=max_tokens,
+            temperature=temperature,
+            timeout_seconds=timeout_seconds,
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/"),
+        )
+
     if provider == "gemini":
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
@@ -120,6 +132,8 @@ def call_llm_with_metadata(prompt: str, system_instruction: str | None = None) -
     try:
         if config.provider == "groq":
             result = _call_groq(prompt=prompt, system_instruction=system_instruction, config=config)
+        elif config.provider == "ollama":
+            result = _call_ollama(prompt=prompt, system_instruction=system_instruction, config=config)
         elif config.provider == "gemini":
             result = _call_gemini(prompt=prompt, system_instruction=system_instruction, config=config)
         else:
@@ -166,6 +180,38 @@ def _call_groq(prompt: str, system_instruction: str | None, config: LLMConfig) -
         model=config.model,
         latency_ms=int((perf_counter() - started_at) * 1000),
         token_usage=_extract_usage(getattr(completion, "usage", None)),
+    )
+
+
+def _call_ollama(prompt: str, system_instruction: str | None, config: LLMConfig) -> LLMCallResult:
+    import requests
+
+    started_at = perf_counter()
+    contents = prompt if not system_instruction else f"{system_instruction}\n\n{prompt}"
+    response = requests.post(
+        f"{config.base_url}/api/generate",
+        json={
+            "model": config.model,
+            "prompt": contents,
+            "stream": False,
+            "options": {
+                "temperature": config.temperature,
+                "num_predict": config.max_tokens,
+            },
+        },
+        timeout=config.timeout_seconds,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    return LLMCallResult(
+        content=payload.get("response", ""),
+        provider=config.provider,
+        model=config.model,
+        latency_ms=int((perf_counter() - started_at) * 1000),
+        token_usage={
+            "prompt_eval_count": payload.get("prompt_eval_count"),
+            "eval_count": payload.get("eval_count"),
+        },
     )
 
 

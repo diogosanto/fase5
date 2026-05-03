@@ -1,7 +1,7 @@
 {
   "env": "dev",
-  "version": "2026.05.03.0318",
-  "model_path": "C:\\Users\\brunn\\Git_Projects\\reset\\fase5\\models\\dev\\model_2026.05.03.0318",
+  "version": "2026.05.03.1334",
+  "model_path": "C:\\Users\\paulo\\OneDrive\\Área de Trabalho\\PROJETOS FIAP\\Tech Challenge Fase 5\\fase5\\models\\dev\\model_2026.05.03.1334",
   "split_strategy": "temporal_holdout",
   "holdout_period_start": "2025-06",
   "holdout_period_end": "2026-01",
@@ -60,7 +60,7 @@
         "n": 3317,
         "mae": 727262.1546358451,
         "median_absolute_error": 2184.0,
-        "bias": -112609.66850827543
+        "bias": -112609.66850827546
       },
       {
         "period": "2025-06",

@@ -18,7 +18,27 @@ python -m pip install --upgrade pip
 python -m pip install -e .
 ```
 
-Copie `.env.example` para `.env` e preencha as chaves de LLM quando for usar o endpoint `/chat`.
+Copie `.env.example` para `.env` e preencha as variaveis de LLM quando for usar o endpoint `/chat`.
+
+Exemplo usando Groq:
+
+```env
+LLM_PROVIDER=groq
+GROQ_API_KEY=sua_chave_real_da_groq
+GROQ_MODEL=llama-3.1-8b-instant
+```
+
+Nesse caso, voce nao precisa preencher `OLLAMA_BASE_URL` nem `OLLAMA_MODEL`.
+
+Exemplo usando Ollama:
+
+```env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://servidor:11434
+OLLAMA_MODEL=llama3.1:8b-instruct-q4
+```
+
+Use Ollama quando houver uma LLM quantizada servida por API local, remota ou em container.
 
 ## Pipeline de dados e modelo
 
@@ -163,7 +183,7 @@ Projeto de Machine Learning Engineering para previsao de precos de imoveis, com 
 
 ## Estrategia de Serving da LLM
 
-A camada de RAG e Agent usa a API Groq como provedor oficial de LLM, com o modelo `llama-3.1-8b-instant`.
+A camada de RAG e Agent suporta LLM quantizada servida via API compativel com Ollama e mantem Groq como provider padrao/fallback operacional.
 
 Variaveis principais:
 
@@ -171,11 +191,15 @@ Variaveis principais:
 LLM_PROVIDER=groq
 GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.1-8b-instant
+
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b-instruct-q4
+
 LLM_MAX_TOKENS=300
 LLM_TEMPERATURE=0.2
 LLM_TIMEOUT_SECONDS=30
 ```
 
-A decisao foi usar LLM servida via API em vez de empacotar uma LLM local quantizada no Docker. Isso reduz complexidade operacional, tamanho da imagem e necessidade de hardware especializado para a demonstracao do MVP.
+Para usar Groq, defina `LLM_PROVIDER=groq` e preencha `GROQ_API_KEY`. Para usar Ollama, defina `LLM_PROVIDER=ollama` e configure `OLLAMA_BASE_URL` e `OLLAMA_MODEL`.
 
 A justificativa completa esta em [docs/LLM_SERVING_DECISION.md](docs/LLM_SERVING_DECISION.md).

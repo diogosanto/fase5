@@ -39,8 +39,8 @@ stages:
       size: 210204826
     - path: params.yaml
       hash: md5
-      md5: e5d32495135947b68f380457b87b29c5
-      size: 657
+      md5: 5a95ae64d409d49c5854a027926fb9f1
+      size: 654
     - path: src/config.py
       hash: md5
       md5: 03558e55135bcabfabf98289b78c231d
@@ -79,21 +79,21 @@ stages:
       size: 203950609
     - path: params.yaml
       hash: md5
-      md5: e5d32495135947b68f380457b87b29c5
-      size: 657
+      md5: 5a95ae64d409d49c5854a027926fb9f1
+      size: 654
     - path: src/config.py
       hash: md5
       md5: 03558e55135bcabfabf98289b78c231d
       size: 3091
     - path: src/features/build_features_minimal.py
       hash: md5
-      md5: e3b3721b37f3afa3723c358b73ea9ed8
-      size: 7219
+      md5: edfd83f170f4cde14ee636482acd9b62
+      size: 6891
     params:
       params.yaml:
         feature_quality:
           min_rows: 1000
-          min_unique_bairros: 20
+          min_unique_ceps: 20
           min_unique_periods: 6
           area_min: 1
           area_max: 50000
@@ -103,39 +103,39 @@ stages:
     outs:
     - path: data/metrics/feature_contract.json
       hash: md5
-      md5: dcbc61412d4d8ed2827e63684bd7885f
-      size: 935
+      md5: 326b99344ce3f82f13409704fae3f1b3
+      size: 744
     - path: data/processed/itbi_features_minimal.csv
       hash: md5
-      md5: 32bd45c125a4907c9ffd8cf9109dba1c
-      size: 3772516
+      md5: d12bdb72709d493b6fb37431a1007505
+      size: 3497987
   train:
     cmd: python src/training/train_mlflow.py
     deps:
     - path: data/processed/itbi_features_minimal.csv
       hash: md5
-      md5: 32bd45c125a4907c9ffd8cf9109dba1c
-      size: 3772516
+      md5: d12bdb72709d493b6fb37431a1007505
+      size: 3497987
     - path: params.yaml
       hash: md5
-      md5: e5d32495135947b68f380457b87b29c5
-      size: 657
+      md5: 5a95ae64d409d49c5854a027926fb9f1
+      size: 654
     - path: src/config.py
       hash: md5
       md5: 03558e55135bcabfabf98289b78c231d
       size: 3091
     - path: src/training/evaluation.py
       hash: md5
-      md5: 7675c0e3852a4fd74a4266db2649ba88
-      size: 2633
+      md5: abe23bea8f08d0b52790318550cb4cd4
+      size: 2666
     - path: src/training/splits.py
       hash: md5
       md5: 0736703d4101b28afb9e137e650cd2c1
       size: 1919
     - path: src/training/train_mlflow.py
       hash: md5
-      md5: 17a64a8c9965298faebf4c4eeda75579
-      size: 10273
+      md5: 8713f20d132a68a6760019183bef3f02
+      size: 10108
     params:
       params.yaml:
         model:
@@ -149,45 +149,45 @@ stages:
     outs:
     - path: data/metrics/train_metrics.json
       hash: md5
-      md5: c66416202c875439fff6e4376daefb5d
-      size: 7253
+      md5: 46c930fcc2f0fc48acb80b359337917a
+      size: 7103
     - path: models/dev
       hash: md5
-      md5: 4c1f36319d3546d8b0d22be34c782fa0.dir
-      size: 66785540
+      md5: 544a235c42171156730afb967a4e7bdd.dir
+      size: 123670445
       nfiles: 6
   validate:
     cmd: python src/training/validate_model.py --env dev
     deps:
     - path: data/processed/itbi_features_minimal.csv
       hash: md5
-      md5: 32bd45c125a4907c9ffd8cf9109dba1c
-      size: 3772516
+      md5: d12bdb72709d493b6fb37431a1007505
+      size: 3497987
     - path: models/dev
       hash: md5
-      md5: 4c1f36319d3546d8b0d22be34c782fa0.dir
-      size: 66785540
+      md5: 544a235c42171156730afb967a4e7bdd.dir
+      size: 123670445
       nfiles: 6
     - path: params.yaml
       hash: md5
-      md5: e5d32495135947b68f380457b87b29c5
-      size: 657
+      md5: 5a95ae64d409d49c5854a027926fb9f1
+      size: 654
     - path: src/config.py
       hash: md5
       md5: 03558e55135bcabfabf98289b78c231d
       size: 3091
     - path: src/training/evaluation.py
       hash: md5
-      md5: 7675c0e3852a4fd74a4266db2649ba88
-      size: 2633
+      md5: abe23bea8f08d0b52790318550cb4cd4
+      size: 2666
     - path: src/training/splits.py
       hash: md5
       md5: 0736703d4101b28afb9e137e650cd2c1
       size: 1919
     - path: src/training/validate_model.py
       hash: md5
-      md5: bd70d3a40f3c33862c142aa8d2f2edbe
-      size: 5245
+      md5: 3fa69a0338dbc809a7784fa8dc1754c7
+      size: 5100
     params:
       params.yaml:
         model:
@@ -201,33 +201,33 @@ stages:
     outs:
     - path: data/metrics/validation_dev.json
       hash: md5
-      md5: 0ca18e05f2df57a2ad037748f9df28fb
-      size: 5015
+      md5: c3716a01ee81bf64a1f2e53d8e742975
+      size: 4849
   eda:
     cmd: python src/features/modelagem/eda_valor_m2_bairro.py --input 
       data/processed/itbi_features_minimal.csv
     deps:
     - path: data/processed/itbi_features_minimal.csv
       hash: md5
-      md5: 32bd45c125a4907c9ffd8cf9109dba1c
-      size: 3772516
+      md5: d12bdb72709d493b6fb37431a1007505
+      size: 3497987
     - path: params.yaml
       hash: md5
-      md5: 4ab32a7a87394d8b7b180c94d8a5709f
-      size: 628
+      md5: 5a95ae64d409d49c5854a027926fb9f1
+      size: 654
     - path: src/config.py
       hash: md5
-      md5: 7d60a8cd8766e5c3bdcf71c89f86d689
-      size: 2985
+      md5: 03558e55135bcabfabf98289b78c231d
+      size: 3091
     - path: src/features/modelagem/eda_valor_m2_bairro.py
       hash: md5
-      md5: 20bfbf4a7403ad64d908e1499e51eb6d
-      size: 15015
+      md5: 64086ea2cced079291cb0d3e24a8198d
+      size: 15896
     outs:
     - path: src/data/eda/features_modelagem
       hash: md5
-      md5: bf84d66d89a449d3e13fd468e88cf3c2.dir
-      size: 603722
+      md5: 2c05bd5e2bb07be6978abd3acf84268d.dir
+      size: 606810
       nfiles: 10
   repro_check:
     cmd: python scripts/check_reproducibility.py

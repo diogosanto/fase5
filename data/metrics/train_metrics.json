@@ -1,6 +1,6 @@
 {
-  "version": "2026.05.03.0318",
-  "run_id": "373ff33f9b3d48c085727fe6db2428f3",
+  "version": "2026.05.03.1334",
+  "run_id": "d5ba5d5ee6e24fd09834a79681c92111",
   "best_model": "random_forest",
   "mae": 2528779.7812218987,
   "r2": 0.6540487233644645,
@@ -13,7 +13,7 @@
   ],
   "n_rows": 101606,
   "training_data_version": "6e168f7e05948d0f6cf06cc591d975ea3a1f4672a1d6bb05b94058a9e4b78b85",
-  "git_sha": "4e9b0f90bf41724f7ca2da5c39be79b1c52d2497",
+  "git_sha": "b537218970db5fd53e0357f0f2887bc9322e7a86",
   "n_train": 81285,
   "n_test": 20321,
   "split_strategy": "temporal_holdout",
@@ -63,7 +63,7 @@
         "n": 3317,
         "mae": 727262.1546358451,
         "median_absolute_error": 2184.0,
-        "bias": -112609.66850827546
+        "bias": -112609.66850827543
       },
       {
         "period": "2025-06",
@@ -217,7 +217,7 @@
   "candidates": [
     {
       "model_name": "random_forest",
-      "run_id": "373ff33f9b3d48c085727fe6db2428f3",
+      "run_id": "d5ba5d5ee6e24fd09834a79681c92111",
       "n": 20321,
       "mae": 2528779.7812218987,
       "median_absolute_error": 171550.01499999966,
@@ -227,17 +227,17 @@
     },
     {
       "model_name": "regressao_linear",
-      "run_id": "907cb6dc81e640c08f9bac9f9ddc328d",
+      "run_id": "3c5db1a3947543c289a258e9a71c8599",
       "n": 20321,
-      "mae": 4981170.098820549,
-      "median_absolute_error": 2449109.589312136,
-      "p95_absolute_error": 25267175.876402617,
-      "bias": -1974318.68707071,
-      "r2": 0.5238426067442654
+      "mae": 4956358.763880809,
+      "median_absolute_error": 2557586.612071991,
+      "p95_absolute_error": 24981518.51380384,
+      "bias": -1717438.9474347222,
+      "r2": 0.5298093502542736
     },
     {
       "model_name": "ridge",
-      "run_id": "b4e93b47d3854181bcaf9d1d294af79e",
+      "run_id": "d4a9935615714dca9dac64a3e09454cb",
       "n": 20321,
       "mae": 7596565.982260356,
       "median_absolute_error": 4499148.200492892,
@@ -247,7 +247,7 @@
     },
     {
       "model_name": "baseline_media",
-      "run_id": "82f03105f73945c7b6a558421fed7b0d",
+      "run_id": "96855731e4564253a75dc229c796907a",
       "n": 20321,
       "mae": 9554390.589312501,
       "median_absolute_error": 8211313.67064034,
