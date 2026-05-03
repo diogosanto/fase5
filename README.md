@@ -122,47 +122,54 @@ python src/training/promote_model.py --from-env dev --to-env test --max-mae 5000
 python src/training/promote_model.py --from-env test --to-env prod --max-mae 50000 --improvement-pct 5
 ```
 
-## API e monitoramento
+## API, Chat e observabilidade
 
-Depois de promover um modelo para `models/prod`, suba a stack:
+Esta etapa sobe a API FastAPI junto com Prometheus, Alertmanager e Grafana. Nao e necessario instalar Prometheus ou Grafana separadamente: o Docker Compose baixa e executa esses servicos em containers.
 
-```powershell
-docker compose up --build
-```
+Antes de subir a stack, confira os pre-requisitos de execucao:
 
-Endpoints principais:
+- O arquivo `.env` deve existir na raiz do projeto quando o endpoint `/chat` for usado com Groq ou Ollama.
+- Para usar Groq, configure `LLM_PROVIDER=groq` e `GROQ_API_KEY` no `.env`. Nao coloque secrets diretamente no `docker-compose.yml`.
+- Para usar Ollama, configure `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL` e `OLLAMA_MODEL`.
+- Para o endpoint `/predict` e para a tool `price_estimator`, promova antes um modelo aprovado para `models/prod`.
+- Para o RAG documental, os documentos ficam em `data/rag/raw/`. O indice vetorial pode ser reconstruido com `python scripts/build_rag_index.py` quando os documentos forem alterados.
 
-- `GET /health`
-- `POST /predict`
-- `POST /chat`
-- `GET /metrics`
-
-Servicos:
-
-- API: `http://localhost:8000`
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3030`
-
-### Observabilidade com Prometheus e Grafana
-
-Nao e necessario instalar Prometheus ou Grafana separadamente. Ao executar `docker compose up --build`, o Docker Compose baixa e sobe os containers da API, Prometheus e Grafana conforme a configuracao do projeto.
-
-Fluxo recomendado para validar a observabilidade:
-
-1. Verifique se o Docker esta instalado:
+Verifique se o Docker esta disponivel:
 
 ```powershell
 docker --version
 docker compose version
 ```
 
-2. Suba a stack:
+Suba a stack:
 
 ```powershell
 docker compose up --build
 ```
 
-3. Gere trafego na API:
+Se a imagem ja foi construida e voce quiser apenas iniciar os containers:
+
+```powershell
+docker compose up -d
+```
+
+Servicos expostos:
+
+- API: `http://localhost:8000`
+- Swagger: `http://localhost:8000/docs`
+- Metricas da API: `http://localhost:8000/metrics`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3030`
+- Alertmanager: `http://localhost:9093`
+
+Endpoints principais:
+
+- `GET /health`: verifica se a API esta ativa.
+- `POST /predict`: executa predicao com o modelo promovido para `models/prod`.
+- `POST /chat`: executa o fluxo Agent/RAG/LLM.
+- `GET /metrics`: expoe metricas para o Prometheus.
+
+Exemplo de teste rapido:
 
 ```powershell
 Invoke-RestMethod http://localhost:8000/health
@@ -170,31 +177,29 @@ Invoke-RestMethod http://localhost:8000/health
 Invoke-RestMethod -Method Post -Uri "http://localhost:8000/chat" `
   -ContentType "application/json" `
   -Body '{"message":"Quais fatores influenciam o preco de um imovel?"}'
-```
 
-4. Valide as metricas expostas pela API:
-
-```powershell
 Invoke-RestMethod http://localhost:8000/metrics
 ```
 
-5. Acesse o Prometheus em `http://localhost:9090` e consulte metricas como:
+No Prometheus, consulte metricas da API, por exemplo:
 
 ```text
 http_requests_total
 http_request_duration_seconds_count
 ```
 
-6. Acesse o Grafana em `http://localhost:3030`.
+No Grafana, acesse `http://localhost:3030`. No ambiente atual, nao ha necessidade de informar credenciais para a validacao inicial: na tela de login/setup, use a opcao de pular (`skip`) quando ela aparecer.
 
-Credenciais padrao, se nao alteradas no Compose:
+O datasource do Prometheus e os dashboards sao provisionados a partir de `monitoring/grafana/provisioning/` e `monitoring/grafana/dashboards/`. Caso nenhum dado apareca no Grafana, gere chamadas para `/health`, `/predict` ou `/chat` e aguarde alguns segundos para o Prometheus coletar as metricas.
 
-```text
-usuario: admin
-senha: admin
+Comandos uteis de diagnostico:
+
+```powershell
+docker compose ps
+docker logs precificador-api --tail 100
+docker logs prometheus --tail 100
+docker logs grafana --tail 100
 ```
-
-No Grafana, valide se o datasource do Prometheus esta configurado e se os dashboards conseguem consultar as metricas da API. Caso nenhum dado apareca, gere novas chamadas para `/health`, `/predict` ou `/chat` e aguarde alguns segundos para o Prometheus coletar os dados.
 
 ## Testes
 
@@ -227,12 +232,6 @@ A pasta `images` tambem recebe uma imagem PNG para cada analise, pronta para vis
 - `frequencia_venda_por_valor.png`
 
 As tabelas e graficos de frequencia usam os valores ate o percentil 99 quando ha ao menos 100 observacoes, reduzindo distorcao visual por outliers extremos. O dataset bruto de features permanece inalterado.
-
-# Precificador Imobiliario
-
-Projeto de Machine Learning Engineering para previsao de precos de imoveis, com API FastAPI, RAG, Agent ReAct, observabilidade e governanca.
-
-
 
 ## Estrategia de Serving da LLM
 
