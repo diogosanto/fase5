@@ -7,9 +7,11 @@ from time import perf_counter
 
 import mlflow.pyfunc
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from prometheus_client import REGISTRY, Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.agent.orchestrator import AgentOrchestrator
@@ -23,6 +25,45 @@ logging.basicConfig(
 logger = logging.getLogger("precificador.api")
 
 API_VERSION = "1.0.0"
+
+
+def _get_or_create_counter(name: str, documentation: str, labelnames: list[str]):
+    collector = getattr(REGISTRY, "_names_to_collectors", {}).get(name)
+    return collector or Counter(name, documentation, labelnames)
+
+
+def _get_or_create_histogram(name: str, documentation: str, labelnames: list[str], buckets: tuple[float, ...]):
+    collector = getattr(REGISTRY, "_names_to_collectors", {}).get(name)
+    return collector or Histogram(name, documentation, labelnames, buckets=buckets)
+
+
+PREDICTION_REQUESTS = _get_or_create_counter(
+    "business_prediction_requests",
+    "Total de requisicoes de predicao processadas pela API.",
+    ["status", "model_version"],
+)
+PREDICTION_VALUE = _get_or_create_histogram(
+    "business_prediction_value_brl",
+    "Distribuicao dos valores estimados pelo modelo em BRL.",
+    ["model_version"],
+    (100_000, 250_000, 500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000),
+)
+CHAT_REQUESTS = _get_or_create_counter(
+    "business_chat_requests",
+    "Total de requisicoes de chat processadas pela API.",
+    ["status", "provider", "model"],
+)
+CHAT_TOOLS_USED = _get_or_create_counter(
+    "business_chat_tools_used",
+    "Total de tools usadas pelo Agent durante requisicoes de chat.",
+    ["tool_name"],
+)
+CHAT_LATENCY = _get_or_create_histogram(
+    "business_chat_latency_seconds",
+    "Latencia de ponta a ponta do endpoint de chat.",
+    ["status", "provider", "model"],
+    (0.1, 0.5, 1, 2, 5, 10, 30, 60),
+)
 
 
 def get_model_version(path):
@@ -48,6 +89,33 @@ app = FastAPI(
 )
 
 Instrumentator().instrument(app).expose(app)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "type": "validation_error",
+                "message": "Preencha todos os campos obrigatorios com valores validos.",
+                "details": _serialize_validation_errors(exc.errors()),
+            }
+        },
+    )
+
+
+def _serialize_validation_errors(errors: list[dict]) -> list[dict]:
+    serialized = []
+    for error in errors:
+        clean_error = dict(error)
+        if "ctx" in clean_error:
+            clean_error["ctx"] = {
+                key: str(value)
+                for key, value in dict(clean_error["ctx"]).items()
+            }
+        serialized.append(clean_error)
+    return serialized
 
 
 @app.get("/")
@@ -99,15 +167,20 @@ class PredictRequest(BaseModel):
             raise ValueError("campo textual nao pode ser vazio")
         return sanitized
 
+    @model_validator(mode="after")
+    def validate_period_fields(self):
+        if (self.ano is None or self.mes is None) and self.ano_mes is None:
+            raise ValueError("Preencha ano e mes, ou informe ano_mes.")
+        if self.ano_mes is not None and self.ano_mes % 100 not in range(1, 13):
+            raise ValueError("ano_mes deve terminar com mes entre 01 e 12.")
+        return self
+
     def to_model_frame(self) -> pd.DataFrame:
         ano = self.ano
         mes = self.mes
         if (ano is None or mes is None) and self.ano_mes is not None:
             ano = self.ano_mes // 100
             mes = self.ano_mes % 100
-
-        if ano is None or mes is None:
-            raise ValueError("Informe `ano` e `mes`, ou informe `ano_mes`.")
 
         payload = {
             "bairro": self.bairro.strip().upper(),
@@ -122,9 +195,16 @@ class PredictRequest(BaseModel):
 
 @app.post("/predict")
 def predict(request: PredictRequest):
-    df = request.to_model_frame()
-    pred = model.predict(df)[0]
-    pred = validate_output(float(pred))
+    try:
+        df = request.to_model_frame()
+        pred = model.predict(df)[0]
+        pred = validate_output(float(pred))
+    except Exception:
+        PREDICTION_REQUESTS.labels(status="error", model_version=MODEL_VERSION).inc()
+        raise
+
+    PREDICTION_REQUESTS.labels(status="success", model_version=MODEL_VERSION).inc()
+    PREDICTION_VALUE.labels(model_version=MODEL_VERSION).observe(pred)
 
     return {
         "valor_estimado": pred,
@@ -273,6 +353,22 @@ def _looks_like_llm_provider_error(error_message: str) -> bool:
     return any(marker in lowered for marker in markers)
 
 
+def _observe_chat_metrics(
+    *,
+    status: str,
+    provider: str | None,
+    model_name: str | None,
+    started_at: float,
+    tools_used: list[str] | None = None,
+) -> None:
+    provider_label = provider or "unknown"
+    model_label = model_name or "unknown"
+    CHAT_REQUESTS.labels(status=status, provider=provider_label, model=model_label).inc()
+    CHAT_LATENCY.labels(status=status, provider=provider_label, model=model_label).observe(perf_counter() - started_at)
+    for tool_name in tools_used or []:
+        CHAT_TOOLS_USED.labels(tool_name=str(tool_name)).inc()
+
+
 @app.post(
     "/chat",
     response_model=ChatResponse,
@@ -346,13 +442,27 @@ async def chat(request: ChatRequest):
                     provider,
                     model_name,
                 )
+                _observe_chat_metrics(
+                    status="llm_provider_error",
+                    provider=provider,
+                    model_name=model_name,
+                    started_at=started_at,
+                    tools_used=result.get("tools_used") or [],
+                )
                 return _error_response(
                     status_code=503,
                     error_type="llm_provider_error",
-                    message="Falha temporaria ao consultar o provedor LLM.",
-                    request_id=request_id,
-                )
+                message="Falha temporaria ao consultar o provedor LLM.",
+                request_id=request_id,
+            )
             logger.error("Erro interno do agent request_id=%s", request_id)
+            _observe_chat_metrics(
+                status="agent_internal_error",
+                provider=provider,
+                model_name=model_name,
+                started_at=started_at,
+                tools_used=result.get("tools_used") or [],
+            )
             return _error_response(
                 status_code=500,
                 error_type="agent_internal_error",
@@ -363,6 +473,13 @@ async def chat(request: ChatRequest):
         answer = result.get("answer")
         if not answer:
             logger.error("Resposta vazia do agent request_id=%s", request_id)
+            _observe_chat_metrics(
+                status="empty_agent_response",
+                provider=provider,
+                model_name=model_name,
+                started_at=started_at,
+                tools_used=result.get("tools_used") or [],
+            )
             return _error_response(
                 status_code=500,
                 error_type="empty_agent_response",
@@ -389,9 +506,17 @@ async def chat(request: ChatRequest):
             response.tools_used,
             response.metadata.chunks_retrieved,
         )
+        _observe_chat_metrics(
+            status="success",
+            provider=provider,
+            model_name=model_name,
+            started_at=started_at,
+            tools_used=response.tools_used,
+        )
         return response
     except TimeoutError:
         logger.warning("Timeout no /chat request_id=%s provider=%s model=%s", request_id, provider, model_name)
+        _observe_chat_metrics(status="timeout", provider=provider, model_name=model_name, started_at=started_at)
         return _error_response(
             status_code=503,
             error_type="timeout",
@@ -401,12 +526,19 @@ async def chat(request: ChatRequest):
     except Exception as exc:
         logger.exception("Falha nao tratada no endpoint /chat")
         if _looks_like_llm_provider_error(str(exc)):
+            _observe_chat_metrics(
+                status="llm_provider_error",
+                provider=provider,
+                model_name=model_name,
+                started_at=started_at,
+            )
             return _error_response(
                 status_code=503,
                 error_type="llm_provider_error",
                 message="Falha temporaria ao consultar o provedor LLM.",
                 request_id=request_id,
             )
+        _observe_chat_metrics(status="internal_error", provider=provider, model_name=model_name, started_at=started_at)
         return _error_response(
             status_code=500,
             error_type="internal_error",
