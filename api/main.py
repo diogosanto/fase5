@@ -15,7 +15,7 @@ from prometheus_client import REGISTRY, Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.agent.orchestrator import AgentOrchestrator
-from src.security.guardrails import validate_input, validate_output
+from src.security.guardrails import validate_input, validate_output, validate_text_policy
 
 
 logging.basicConfig(
@@ -271,6 +271,7 @@ class ChatRequest(BaseModel):
             raise ValueError("message nao pode ser vazio")
         if len(sanitized) > MAX_CHAT_MESSAGE_LENGTH:
             raise ValueError(f"message deve ter no maximo {MAX_CHAT_MESSAGE_LENGTH} caracteres")
+        validate_text_policy({"message": sanitized})
         return sanitized
 
 
