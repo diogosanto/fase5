@@ -2,6 +2,24 @@
 
 Projeto de MLOps para precificacao de terrenos urbanos em Sao Paulo usando dados publicos de ITBI, rastreamento com DVC, experimentos com MLflow, API FastAPI, agente RAG e monitoramento com Prometheus/Grafana.
 
+## Aplicabilidade em deteccao de anomalias e fraudes imobiliarias
+
+Embora o objetivo principal do projeto seja estimar precos de imoveis, a mesma arquitetura tambem pode apoiar analises de indicios de fraude, subdeclaracao ou inconsistencia em valores imobiliarios.
+
+Como o modelo aprende padroes historicos de preco a partir de variaveis como localizacao, area e periodo, ele pode ser usado para comparar o valor declarado de uma transacao com o valor estimado pelo modelo. Diferencas muito elevadas entre o valor informado e o valor esperado podem sinalizar casos que merecem revisao humana, auditoria ou investigacao complementar.
+
+Exemplos de uso:
+
+- imovel declarado com valor muito abaixo do esperado para a regiao;
+- imovel declarado com valor muito acima do padrao historico;
+- possivel subdeclaracao de valor em transacoes imobiliarias;
+- inconsistencias entre valor por metro quadrado e media regional;
+- necessidade de auditoria em regioes com alto desvio entre valor declarado e valor estimado.
+
+Nesse contexto, o sistema nao afirma que existe fraude. Ele gera um sinal de alerta baseado em desvio estatistico, historico de dados e contexto documental, que deve ser analisado por especialistas, analistas de risco ou orgaos responsaveis.
+
+Essa leitura amplia o valor do projeto: alem de servir como motor de precificacao, a solucao tambem funciona como base de MLE para triagem de anomalias em valores imobiliarios, combinando modelo preditivo, API, RAG, Agent, guardrails, governanca, observabilidade e CI/CD.
+
 ## Requisitos
 
 - Python 3.10 ou 3.11
