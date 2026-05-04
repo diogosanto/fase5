@@ -24,7 +24,8 @@ Definir como o projeto trata privacidade, minimizacao de dados e riscos LGPD no 
 ## Controles Implementados
 
 - Sanitizacao de CEP e textos em `api/main.py`.
-- Politicas de PII, prompt injection e escopo seguro em `src/security/guardrails.py`.
+- Politicas de PII, prompt injection e escopo seguro em `src/security/input_guardrails.py`, `src/security/pii_detection.py` e `src/security/prompt_injection.py`.
+- Validacao de saida textual em `src/security/output_guardrails.py` para reduzir risco de resposta com PII ou alegacao financeira indevida.
 - `.env.example` sem secrets reais.
 - Logs truncados para reduzir exposicao de entrada do usuario.
 - Metricas operacionais sem identificador pessoal.

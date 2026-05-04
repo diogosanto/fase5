@@ -13,7 +13,7 @@ O sistema e um MVP de MLOps para precificacao imobiliaria em Sao Paulo usando da
 | API FastAPI | Servir `/predict`, `/chat`, `/health`, `/metrics`. | `api/main.py` |
 | Agent ReAct | Selecionar tools e coordenar resposta final. | `src/agent/react_agent.py` |
 | RAG | Recuperar contexto em documentos locais. | `src/rag/`, `data/rag/raw/` |
-| Guardrails | Validar input/output, PII e prompt injection. | `src/security/guardrails.py` |
+| Guardrails | Validar input/output, PII e prompt injection. | `src/security/`, `docs/OWASP_MAPPING.md` |
 | Observabilidade | Expor metricas de API, chat, tools e predicoes. | `monitoring/`, `api/main.py` |
 
 ## Entradas e Saidas
@@ -33,10 +33,13 @@ Saidas principais:
 - Validacao Pydantic nos endpoints.
 - `validate_input` para CEP, area, ano e mes.
 - `validate_output` para bloquear valor negativo.
-- `validate_text_policy` para prompt injection, PII e segredos.
+- `validate_user_input` e `validate_text_policy` para prompt injection, PII e segredos.
+- `validate_model_output` para bloquear PII, vazamento de prompt e certeza financeira/juridica indevida na resposta do `/chat`.
 - Agent usa allowlist de tools.
 - `thought` interno nao deve aparecer na resposta final.
 - Erros de provedor LLM e agent retornam mensagens controladas.
+- Governanca operacional documentada em `docs/GOVERNANCE.md`.
+- Cenarios adversariais documentados em `docs/ADVERSARIAL_TESTS.md`.
 
 ## Limitacoes
 

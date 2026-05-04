@@ -15,7 +15,7 @@ from prometheus_client import REGISTRY, Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.agent.orchestrator import AgentOrchestrator
-from src.security.guardrails import validate_input, validate_output, validate_text_policy
+from src.security.guardrails import validate_input, validate_model_output, validate_output, validate_text_policy
 
 
 logging.basicConfig(
@@ -484,6 +484,18 @@ async def chat(request: ChatRequest):
                 error_type="empty_agent_response",
                 message="O agent retornou uma resposta vazia.",
                 request_id=request_id,
+            )
+
+        output_guardrail = validate_model_output(str(answer))
+        if not output_guardrail.allowed:
+            logger.warning(
+                "Saida do /chat bloqueada por guardrail request_id=%s reason=%s",
+                request_id,
+                output_guardrail.reason,
+            )
+            answer = (
+                "A resposta foi bloqueada por uma politica de seguranca. "
+                "Refaca a pergunta sem dados pessoais, secrets ou pedidos fora do escopo."
             )
 
         response = ChatResponse(

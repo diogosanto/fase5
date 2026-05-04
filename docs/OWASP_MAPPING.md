@@ -1,42 +1,38 @@
-# OWASP LLM Top 10 - Mapeamento de Ameacas
+# OWASP Mapping - LLM, RAG e Agent
 
 ## Escopo
 
-Sistema avaliado: API FastAPI de precificacao imobiliaria, endpoint `/predict`, endpoint `/chat`, Agent ReAct, RAG documental, tools `rag_search`, `price_estimator` e `region_comparer`.
+Sistema avaliado: API FastAPI de precificacao imobiliaria, endpoint `/predict`, endpoint `/chat`, Agent ReAct, RAG documental e tools `rag_search`, `price_estimator` e `region_comparer`.
 
-Artefatos relacionados:
+Este mapeamento usa como referencia o OWASP Top 10 for LLM Applications 2025, publicado pelo OWASP GenAI Security Project: <https://genai.owasp.org/llm-top-10/>.
 
-- `api/main.py`
-- `src/security/guardrails.py`
-- `src/agent/prompts.py`
-- `src/agent/react_agent.py`
-- `src/agent/tools.py`
-- `docs/LLM_SERVING_DECISION.md`
-- `docs/AGENT_REACT.md`
+## Mapeamento de Ameacas
 
-## Mapeamento
-
-| Ameaca OWASP | Risco no projeto | Mitigacoes implementadas | Evidencia |
-| --- | --- | --- | --- |
-| LLM01 Prompt Injection | Usuario tenta sobrescrever instrucoes do sistema, expor prompt ou forcar uso indevido de tools. | Prompt do agente limita tools e exige JSON; `validate_text_policy` bloqueia padroes de prompt injection; roteamento heuristico reduz chamadas desnecessarias a LLM. | `src/security/guardrails.py`, `src/agent/prompts.py`, `src/agent/react_agent.py` |
-| LLM02 Insecure Output Handling | Resposta do modelo ou da LLM poderia retornar valor invalido, vazio ou erro bruto. | `validate_output` bloqueia predicao negativa; API transforma erros do agent/provedor em respostas controladas; resposta final nao expoe `thought`. | `src/security/guardrails.py`, `api/main.py`, `docs/AGENT_REACT.md` |
-| LLM03 Training Data Poisoning | Dados publicos ou documentos RAG alterados poderiam induzir respostas e metricas ruins. | DVC rastreia pipeline; quality gates em `params.yaml`; RAG usa documentos locais versionaveis; reproducibilidade e contrato de features documentados. | `dvc.yaml`, `params.yaml`, `data/rag/raw/`, `data/metrics/reproducibility_report.json` |
-| LLM05 Improper Output / Agency | Agent poderia usar tool errada, repetir passos ou inventar resultado. | Limite `AGENT_MAX_STEPS`; lista fechada de tools; fallback controlado; regra "Nao invente resultados de tools"; mensagens de campos faltantes. | `src/agent/prompts.py`, `src/agent/react_agent.py`, `src/agent/tools.py` |
-| LLM06 Sensitive Information Disclosure | Usuario envia CPF, CNPJ, e-mail, telefone ou pede secrets. | `validate_text_policy` bloqueia PII comum e termos de segredo; `.env.example` usa placeholders; logs truncam mensagens e nao registram API keys. | `src/security/guardrails.py`, `.env.example`, `api/main.py`, `docs/LLM_SERVING_DECISION.md` |
-| LLM07 Insecure Plugin / Tool Design | Tools executam acesso a modelo, RAG e dataset processado. | Tools sao funcoes internas registradas em allowlist; entradas sao normalizadas; campos obrigatorios sao validados; erros retornam payload controlado. | `src/agent/tools.py` |
-| LLM09 Overreliance | Usuario pode interpretar estimativa como valor definitivo. | System Card e Model Card documentam limites; respostas de preco indicam que a estimativa vem do modelo; metricas de erro sao acompanhadas. | `docs/MODEL_CARD.md`, `docs/SYSTEM_CARD.md`, `data/metrics/validation_dev.json` |
+| ID da ameaca | Nome da ameaca | Como se aplica ao projeto | Nivel de risco | Mitigacao implementada ou planejada | Arquivo/modulo relacionado | Cobertura de teste |
+| --- | --- | --- | --- | --- | --- | --- |
+| LLM01:2025 | Prompt Injection | Usuario tenta sobrescrever instrucoes do sistema, revelar prompt oculto ou manipular a escolha de tools do Agent. | Alto | Guardrail de input bloqueia padroes conhecidos; prompt do Agent usa allowlist de tools; resposta final nao expoe pensamento interno. | `src/security/input_guardrails.py`, `src/security/prompt_injection.py`, `src/agent/prompts.py`, `src/agent/react_agent.py` | `tests/unit/test_guardrails.py`, `tests/unit/test_adversarial_scenarios.py` |
+| LLM02:2025 | Sensitive Information Disclosure | Usuario pode enviar CPF, e-mail, telefone ou tentar obter secrets/API keys; a LLM poderia repetir PII na resposta. | Alto | Deteccao de PII antes do Agent/LLM; validacao de output antes de retornar `/chat`; `.env.example` usa placeholders; logs truncados. | `src/security/pii_detection.py`, `src/security/input_guardrails.py`, `src/security/output_guardrails.py`, `api/main.py`, `.env.example` | `tests/unit/test_guardrails.py`, `tests/unit/test_adversarial_scenarios.py` |
+| LLM04:2025 | Data and Model Poisoning | Documentos RAG alterados ou dataset processado manipulado podem induzir respostas incorretas, enviesadas ou inseguras. | Medio | Documentos RAG ficam versionaveis em `data/rag/raw`; script de build preserva fontes; pipeline DVC e contratos de features rastreiam dados/modelo. | `data/rag/raw/`, `scripts/build_rag_index.py`, `src/rag/`, `dvc.yaml`, `params.yaml` | `tests/unit/test_rag_documental.py`, `tests/unit/test_build_rag_index.py` |
+| LLM05:2025 | Improper Output Handling | Resposta textual da LLM/Agent pode conter PII, certeza financeira indevida, vazamento de prompt ou resposta vazia. | Alto | `validate_model_output` bloqueia PII, prompt leakage e alegacoes de preco garantido; API usa fallback seguro para output bloqueado. | `src/security/output_guardrails.py`, `api/main.py` | `tests/unit/test_guardrails.py`, `tests/unit/test_adversarial_scenarios.py` |
+| LLM06:2025 | Excessive Agency | Agent poderia chamar tool inadequada, repetir passos, usar parametros ruins ou agir com autonomia excessiva. | Medio | Lista fechada de tools; `AGENT_MAX_STEPS`; roteamento por intencao; tools retornam status estruturado e erros controlados. | `src/agent/react_agent.py`, `src/agent/tools.py`, `docs/AGENT_REACT.md`, `docs/AGENT_TOOLS.md` | `tests/unit/test_react_agent.py`, `tests/unit/test_agent_tools.py` |
+| LLM08:2025 | Vector and Embedding Weaknesses | RAG pode recuperar contexto irrelevante, fontes inexistentes ou chunks contaminados. | Medio | Retriever limita `RAG_TOP_K`; chunks preservam metadata de fonte; `rag_search` retorna fontes reais e numero de chunks. | `src/rag/`, `src/agent/tools.py`, `data/rag/raw/` | `tests/unit/test_rag_documental.py`, `tests/unit/test_agent_tools.py` |
+| LLM10:2025 | Unbounded Consumption | Input muito grande ou loops de Agent podem aumentar custo, latencia e consumo de tokens no Groq/Ollama. | Medio | Limite de tamanho de mensagem; `CHAT_TIMEOUT_SECONDS`; `LLM_MAX_TOKENS`; `AGENT_MAX_STEPS`; `RAG_TOP_K`. | `api/main.py`, `src/security/input_guardrails.py`, `src/agent/react_agent.py`, `src/agent/llm.py`, `.env.example` | `tests/unit/test_guardrails.py`, `tests/unit/test_react_agent.py` |
+| OWASP A09:2025 | Security Logging and Alerting Failures | Falhas do Agent, tools ou provedor LLM podem passar despercebidas sem logs e metricas. | Medio | Logs com `request_id`; metricas Prometheus para chat, tools, latencia e predicoes; Grafana provisionado via Docker Compose. | `api/main.py`, `monitoring/`, `README.md` | `tests/integration/test_chat_endpoint.py` |
 
 ## Controles Operacionais
 
-- Limite de tamanho do chat: `MAX_CHAT_MESSAGE_LENGTH=1000`.
-- Timeout do chat: `CHAT_TIMEOUT_SECONDS`, default 30s.
-- Limite de passos do agent: `AGENT_MAX_STEPS`, default 3 e maximo 10 no agente.
-- Observabilidade: metricas Prometheus para predicao, chat, tools, latencia e valores estimados.
-- Secrets: variaveis de ambiente para Groq/Ollama; sem chave hardcoded.
+- Limite de tamanho do chat: `MAX_CHAT_MESSAGE_LENGTH`, default 1000 caracteres.
+- Timeout do chat: `CHAT_TIMEOUT_SECONDS`, default 30 segundos.
+- Limite de passos do Agent: `AGENT_MAX_STEPS`, default 3.
+- Limite de tokens da LLM: `LLM_MAX_TOKENS`, default 300.
+- Limite de recuperacao RAG: `RAG_TOP_K`, default 3.
+- Secrets carregados por variaveis de ambiente, sem chave hardcoded.
+- Logs nao devem registrar API keys, prompts internos completos ou payload sensivel.
 
 ## Riscos Residuais
 
-- Padroes de prompt injection e PII sao baseados em regex e nao substituem um classificador dedicado.
-- RAG depende da qualidade dos documentos versionados em `data/rag/raw/`.
-- Ollama remoto deve ser protegido por rede, firewall ou proxy quando exposto fora do host local.
-- O modelo estima valor venal/de referencia e nao deve ser usado como unica base para decisao financeira.
+- Regex de PII e prompt injection nao cobre todas as tecnicas de evasao.
+- Provedores externos de LLM devem ser avaliados juridicamente antes de uso em producao real.
+- Documentos RAG exigem revisao humana para evitar contexto incorreto ou desatualizado.
+- Estimativas de preco nao devem ser usadas como decisao financeira, juridica ou fiscal automatizada.
+
